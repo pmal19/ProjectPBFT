@@ -2,10 +2,8 @@ package main
 
 import (
 	"log"
-
 	context "golang.org/x/net/context"
-
-	"github.com/nyu-distributed-systems-fa18/starter-code-lab2/pb"
+	"ProjectPBFT/pbft/pb"
 )
 
 // The struct for data to send over channel
