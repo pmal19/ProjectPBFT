@@ -886,6 +886,497 @@ func (m *RequestVoteRet) GetVoteGranted() bool {
 	return false
 }
 
+// Request from client
+type ClientRequest struct {
+	Operation            string   `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
+	Timestamp            int64    `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	ClientID             string   `protobuf:"bytes,3,opt,name=clientID,proto3" json:"clientID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClientRequest) Reset()         { *m = ClientRequest{} }
+func (m *ClientRequest) String() string { return proto.CompactTextString(m) }
+func (*ClientRequest) ProtoMessage()    {}
+func (*ClientRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{15}
+}
+
+func (m *ClientRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClientRequest.Unmarshal(m, b)
+}
+func (m *ClientRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClientRequest.Marshal(b, m, deterministic)
+}
+func (m *ClientRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientRequest.Merge(m, src)
+}
+func (m *ClientRequest) XXX_Size() int {
+	return xxx_messageInfo_ClientRequest.Size(m)
+}
+func (m *ClientRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClientRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClientRequest proto.InternalMessageInfo
+
+func (m *ClientRequest) GetOperation() string {
+	if m != nil {
+		return m.Operation
+	}
+	return ""
+}
+
+func (m *ClientRequest) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+func (m *ClientRequest) GetClientID() string {
+	if m != nil {
+		return m.ClientID
+	}
+	return ""
+}
+
+// Response to client
+type ClientResponse struct {
+	ViewId               int64    `protobuf:"varint,1,opt,name=viewId,proto3" json:"viewId,omitempty"`
+	Timestamp            int64    `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	ClientID             string   `protobuf:"bytes,3,opt,name=clientID,proto3" json:"clientID,omitempty"`
+	Node                 string   `protobuf:"bytes,4,opt,name=node,proto3" json:"node,omitempty"`
+	NodeResult           *Result  `protobuf:"bytes,5,opt,name=nodeResult,proto3" json:"nodeResult,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ClientResponse) Reset()         { *m = ClientResponse{} }
+func (m *ClientResponse) String() string { return proto.CompactTextString(m) }
+func (*ClientResponse) ProtoMessage()    {}
+func (*ClientResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{16}
+}
+
+func (m *ClientResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ClientResponse.Unmarshal(m, b)
+}
+func (m *ClientResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ClientResponse.Marshal(b, m, deterministic)
+}
+func (m *ClientResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ClientResponse.Merge(m, src)
+}
+func (m *ClientResponse) XXX_Size() int {
+	return xxx_messageInfo_ClientResponse.Size(m)
+}
+func (m *ClientResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ClientResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ClientResponse proto.InternalMessageInfo
+
+func (m *ClientResponse) GetViewId() int64 {
+	if m != nil {
+		return m.ViewId
+	}
+	return 0
+}
+
+func (m *ClientResponse) GetTimestamp() int64 {
+	if m != nil {
+		return m.Timestamp
+	}
+	return 0
+}
+
+func (m *ClientResponse) GetClientID() string {
+	if m != nil {
+		return m.ClientID
+	}
+	return ""
+}
+
+func (m *ClientResponse) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+func (m *ClientResponse) GetNodeResult() *Result {
+	if m != nil {
+		return m.NodeResult
+	}
+	return nil
+}
+
+type PrePrepareMsg struct {
+	ViewId               int64          `protobuf:"varint,1,opt,name=viewId,proto3" json:"viewId,omitempty"`
+	SequenceID           int64          `protobuf:"varint,2,opt,name=sequenceID,proto3" json:"sequenceID,omitempty"`
+	Digest               string         `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	Request              *ClientRequest `protobuf:"bytes,4,opt,name=request,proto3" json:"request,omitempty"`
+	Node                 string         `protobuf:"bytes,5,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}       `json:"-"`
+	XXX_unrecognized     []byte         `json:"-"`
+	XXX_sizecache        int32          `json:"-"`
+}
+
+func (m *PrePrepareMsg) Reset()         { *m = PrePrepareMsg{} }
+func (m *PrePrepareMsg) String() string { return proto.CompactTextString(m) }
+func (*PrePrepareMsg) ProtoMessage()    {}
+func (*PrePrepareMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{17}
+}
+
+func (m *PrePrepareMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PrePrepareMsg.Unmarshal(m, b)
+}
+func (m *PrePrepareMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PrePrepareMsg.Marshal(b, m, deterministic)
+}
+func (m *PrePrepareMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PrePrepareMsg.Merge(m, src)
+}
+func (m *PrePrepareMsg) XXX_Size() int {
+	return xxx_messageInfo_PrePrepareMsg.Size(m)
+}
+func (m *PrePrepareMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_PrePrepareMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PrePrepareMsg proto.InternalMessageInfo
+
+func (m *PrePrepareMsg) GetViewId() int64 {
+	if m != nil {
+		return m.ViewId
+	}
+	return 0
+}
+
+func (m *PrePrepareMsg) GetSequenceID() int64 {
+	if m != nil {
+		return m.SequenceID
+	}
+	return 0
+}
+
+func (m *PrePrepareMsg) GetDigest() string {
+	if m != nil {
+		return m.Digest
+	}
+	return ""
+}
+
+func (m *PrePrepareMsg) GetRequest() *ClientRequest {
+	if m != nil {
+		return m.Request
+	}
+	return nil
+}
+
+func (m *PrePrepareMsg) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+type PrepareMsg struct {
+	ViewId               int64    `protobuf:"varint,1,opt,name=viewId,proto3" json:"viewId,omitempty"`
+	SequenceID           int64    `protobuf:"varint,2,opt,name=sequenceID,proto3" json:"sequenceID,omitempty"`
+	Digest               string   `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	Node                 string   `protobuf:"bytes,4,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PrepareMsg) Reset()         { *m = PrepareMsg{} }
+func (m *PrepareMsg) String() string { return proto.CompactTextString(m) }
+func (*PrepareMsg) ProtoMessage()    {}
+func (*PrepareMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{18}
+}
+
+func (m *PrepareMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PrepareMsg.Unmarshal(m, b)
+}
+func (m *PrepareMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PrepareMsg.Marshal(b, m, deterministic)
+}
+func (m *PrepareMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PrepareMsg.Merge(m, src)
+}
+func (m *PrepareMsg) XXX_Size() int {
+	return xxx_messageInfo_PrepareMsg.Size(m)
+}
+func (m *PrepareMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_PrepareMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PrepareMsg proto.InternalMessageInfo
+
+func (m *PrepareMsg) GetViewId() int64 {
+	if m != nil {
+		return m.ViewId
+	}
+	return 0
+}
+
+func (m *PrepareMsg) GetSequenceID() int64 {
+	if m != nil {
+		return m.SequenceID
+	}
+	return 0
+}
+
+func (m *PrepareMsg) GetDigest() string {
+	if m != nil {
+		return m.Digest
+	}
+	return ""
+}
+
+func (m *PrepareMsg) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+type CommitMsg struct {
+	ViewId               int64    `protobuf:"varint,1,opt,name=viewId,proto3" json:"viewId,omitempty"`
+	SequenceID           int64    `protobuf:"varint,2,opt,name=sequenceID,proto3" json:"sequenceID,omitempty"`
+	Digest               string   `protobuf:"bytes,3,opt,name=digest,proto3" json:"digest,omitempty"`
+	Node                 string   `protobuf:"bytes,4,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *CommitMsg) Reset()         { *m = CommitMsg{} }
+func (m *CommitMsg) String() string { return proto.CompactTextString(m) }
+func (*CommitMsg) ProtoMessage()    {}
+func (*CommitMsg) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{19}
+}
+
+func (m *CommitMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_CommitMsg.Unmarshal(m, b)
+}
+func (m *CommitMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_CommitMsg.Marshal(b, m, deterministic)
+}
+func (m *CommitMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CommitMsg.Merge(m, src)
+}
+func (m *CommitMsg) XXX_Size() int {
+	return xxx_messageInfo_CommitMsg.Size(m)
+}
+func (m *CommitMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_CommitMsg.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CommitMsg proto.InternalMessageInfo
+
+func (m *CommitMsg) GetViewId() int64 {
+	if m != nil {
+		return m.ViewId
+	}
+	return 0
+}
+
+func (m *CommitMsg) GetSequenceID() int64 {
+	if m != nil {
+		return m.SequenceID
+	}
+	return 0
+}
+
+func (m *CommitMsg) GetDigest() string {
+	if m != nil {
+		return m.Digest
+	}
+	return ""
+}
+
+func (m *CommitMsg) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
+type LogEntry struct {
+	// Types that are valid to be assigned to Entry:
+	//	*LogEntry_Preprep
+	//	*LogEntry_Prep
+	//	*LogEntry_Commit
+	Entry                isLogEntry_Entry `protobuf_oneof:"entry"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
+}
+
+func (m *LogEntry) Reset()         { *m = LogEntry{} }
+func (m *LogEntry) String() string { return proto.CompactTextString(m) }
+func (*LogEntry) ProtoMessage()    {}
+func (*LogEntry) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{20}
+}
+
+func (m *LogEntry) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LogEntry.Unmarshal(m, b)
+}
+func (m *LogEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LogEntry.Marshal(b, m, deterministic)
+}
+func (m *LogEntry) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LogEntry.Merge(m, src)
+}
+func (m *LogEntry) XXX_Size() int {
+	return xxx_messageInfo_LogEntry.Size(m)
+}
+func (m *LogEntry) XXX_DiscardUnknown() {
+	xxx_messageInfo_LogEntry.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LogEntry proto.InternalMessageInfo
+
+type isLogEntry_Entry interface {
+	isLogEntry_Entry()
+}
+
+type LogEntry_Preprep struct {
+	Preprep *PrePrepareMsg `protobuf:"bytes,1,opt,name=preprep,proto3,oneof"`
+}
+
+type LogEntry_Prep struct {
+	Prep *PrepareMsg `protobuf:"bytes,2,opt,name=prep,proto3,oneof"`
+}
+
+type LogEntry_Commit struct {
+	Commit *CommitMsg `protobuf:"bytes,3,opt,name=commit,proto3,oneof"`
+}
+
+func (*LogEntry_Preprep) isLogEntry_Entry() {}
+
+func (*LogEntry_Prep) isLogEntry_Entry() {}
+
+func (*LogEntry_Commit) isLogEntry_Entry() {}
+
+func (m *LogEntry) GetEntry() isLogEntry_Entry {
+	if m != nil {
+		return m.Entry
+	}
+	return nil
+}
+
+func (m *LogEntry) GetPreprep() *PrePrepareMsg {
+	if x, ok := m.GetEntry().(*LogEntry_Preprep); ok {
+		return x.Preprep
+	}
+	return nil
+}
+
+func (m *LogEntry) GetPrep() *PrepareMsg {
+	if x, ok := m.GetEntry().(*LogEntry_Prep); ok {
+		return x.Prep
+	}
+	return nil
+}
+
+func (m *LogEntry) GetCommit() *CommitMsg {
+	if x, ok := m.GetEntry().(*LogEntry_Commit); ok {
+		return x.Commit
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*LogEntry) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*LogEntry_Preprep)(nil),
+		(*LogEntry_Prep)(nil),
+		(*LogEntry_Commit)(nil),
+	}
+}
+
+type PbftMsgAccepted struct {
+	ViewId               int64    `protobuf:"varint,1,opt,name=viewId,proto3" json:"viewId,omitempty"`
+	SequenceID           int64    `protobuf:"varint,2,opt,name=sequenceID,proto3" json:"sequenceID,omitempty"`
+	Success              bool     `protobuf:"varint,3,opt,name=success,proto3" json:"success,omitempty"`
+	TypeOfAccepted       string   `protobuf:"bytes,4,opt,name=typeOfAccepted,proto3" json:"typeOfAccepted,omitempty"`
+	Node                 string   `protobuf:"bytes,5,opt,name=node,proto3" json:"node,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *PbftMsgAccepted) Reset()         { *m = PbftMsgAccepted{} }
+func (m *PbftMsgAccepted) String() string { return proto.CompactTextString(m) }
+func (*PbftMsgAccepted) ProtoMessage()    {}
+func (*PbftMsgAccepted) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2216fe83c9c12408, []int{21}
+}
+
+func (m *PbftMsgAccepted) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_PbftMsgAccepted.Unmarshal(m, b)
+}
+func (m *PbftMsgAccepted) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_PbftMsgAccepted.Marshal(b, m, deterministic)
+}
+func (m *PbftMsgAccepted) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_PbftMsgAccepted.Merge(m, src)
+}
+func (m *PbftMsgAccepted) XXX_Size() int {
+	return xxx_messageInfo_PbftMsgAccepted.Size(m)
+}
+func (m *PbftMsgAccepted) XXX_DiscardUnknown() {
+	xxx_messageInfo_PbftMsgAccepted.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_PbftMsgAccepted proto.InternalMessageInfo
+
+func (m *PbftMsgAccepted) GetViewId() int64 {
+	if m != nil {
+		return m.ViewId
+	}
+	return 0
+}
+
+func (m *PbftMsgAccepted) GetSequenceID() int64 {
+	if m != nil {
+		return m.SequenceID
+	}
+	return 0
+}
+
+func (m *PbftMsgAccepted) GetSuccess() bool {
+	if m != nil {
+		return m.Success
+	}
+	return false
+}
+
+func (m *PbftMsgAccepted) GetTypeOfAccepted() string {
+	if m != nil {
+		return m.TypeOfAccepted
+	}
+	return ""
+}
+
+func (m *PbftMsgAccepted) GetNode() string {
+	if m != nil {
+		return m.Node
+	}
+	return ""
+}
+
 func init() {
 	proto.RegisterEnum("pb.Op", Op_name, Op_value)
 	proto.RegisterType((*Key)(nil), "pb.Key")
@@ -903,57 +1394,87 @@ func init() {
 	proto.RegisterType((*AppendEntriesRet)(nil), "pb.AppendEntriesRet")
 	proto.RegisterType((*RequestVoteArgs)(nil), "pb.RequestVoteArgs")
 	proto.RegisterType((*RequestVoteRet)(nil), "pb.RequestVoteRet")
+	proto.RegisterType((*ClientRequest)(nil), "pb.ClientRequest")
+	proto.RegisterType((*ClientResponse)(nil), "pb.ClientResponse")
+	proto.RegisterType((*PrePrepareMsg)(nil), "pb.PrePrepareMsg")
+	proto.RegisterType((*PrepareMsg)(nil), "pb.PrepareMsg")
+	proto.RegisterType((*CommitMsg)(nil), "pb.CommitMsg")
+	proto.RegisterType((*LogEntry)(nil), "pb.LogEntry")
+	proto.RegisterType((*PbftMsgAccepted)(nil), "pb.PbftMsgAccepted")
 }
 
 func init() { proto.RegisterFile("kv.proto", fileDescriptor_2216fe83c9c12408) }
 
 var fileDescriptor_2216fe83c9c12408 = []byte{
-	// 706 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x74, 0x54, 0x4d, 0x6f, 0xda, 0x4a,
-	0x14, 0xc5, 0x0c, 0xc6, 0x70, 0xc9, 0xcb, 0xe3, 0xdd, 0x97, 0xb6, 0x94, 0x7c, 0x11, 0xb7, 0x8b,
-	0x2a, 0x8b, 0x2c, 0xe8, 0xa6, 0xab, 0xaa, 0x84, 0x52, 0x88, 0x12, 0x29, 0xd5, 0x10, 0x65, 0xef,
-	0xd8, 0xb7, 0x08, 0xf1, 0x61, 0x77, 0x66, 0xb0, 0x8a, 0xba, 0xe9, 0xbe, 0xea, 0xff, 0xe9, 0xef,
-	0xe8, 0x2f, 0xaa, 0x66, 0x6c, 0xc0, 0x86, 0x64, 0x37, 0xf7, 0xdc, 0x8f, 0x73, 0xee, 0xf1, 0x05,
-	0xa8, 0x4c, 0xe2, 0x8b, 0x48, 0x84, 0x2a, 0xc4, 0x62, 0xf4, 0xe0, 0xbe, 0x00, 0x76, 0x4d, 0x4b,
-	0xac, 0x03, 0x9b, 0xd0, 0xb2, 0x61, 0xb5, 0xac, 0x37, 0x55, 0xae, 0x9f, 0xee, 0x31, 0xd8, 0xf7,
-	0xde, 0x74, 0x41, 0x78, 0x00, 0x76, 0xac, 0x1f, 0x69, 0x32, 0x09, 0xdc, 0x36, 0x54, 0xae, 0x69,
-	0x99, 0x54, 0xec, 0x34, 0x6f, 0x7a, 0x8a, 0xd9, 0x9e, 0x2a, 0x38, 0xc3, 0x85, 0xef, 0x93, 0x94,
-	0xee, 0x4b, 0xb0, 0x7b, 0x42, 0x84, 0x42, 0xf7, 0xce, 0xe4, 0x68, 0xd5, 0x3b, 0x93, 0x23, 0xb7,
-	0x0f, 0xe5, 0x6e, 0x67, 0xd8, 0x11, 0x23, 0x3c, 0x82, 0xe2, 0x24, 0x36, 0xa9, 0x5a, 0x7b, 0xef,
-	0x22, 0x7a, 0xb8, 0x58, 0x31, 0xf2, 0xe2, 0x24, 0xc6, 0xd3, 0x2c, 0x47, 0xad, 0x5d, 0xd5, 0x05,
-	0x49, 0x36, 0xa5, 0x73, 0xc0, 0xee, 0xcd, 0x22, 0xb5, 0x74, 0x5d, 0xa8, 0x70, 0x0a, 0xc6, 0x82,
-	0x7c, 0x85, 0xcf, 0xa1, 0x2c, 0x49, 0xc4, 0x24, 0x52, 0xca, 0x34, 0x72, 0xbf, 0x43, 0x99, 0x93,
-	0x5c, 0x4c, 0x15, 0x9e, 0x43, 0x45, 0xa4, 0xd5, 0x59, 0xee, 0xd5, 0x84, 0x41, 0x81, 0xaf, 0xf3,
-	0x78, 0x62, 0x14, 0x16, 0x77, 0x15, 0x0e, 0x0a, 0x46, 0xe3, 0x21, 0x58, 0xb2, 0xc1, 0x4c, 0xba,
-	0xa6, 0xd3, 0xe9, 0xfa, 0x83, 0x02, 0xb7, 0xe4, 0x65, 0x05, 0xca, 0xc2, 0x50, 0xba, 0xbf, 0x2d,
-	0x70, 0xba, 0xe1, 0x6c, 0xe6, 0xcd, 0x03, 0x7c, 0x0d, 0xd5, 0x30, 0x22, 0xe1, 0xa9, 0x71, 0x38,
-	0x37, 0xfc, 0xfb, 0xed, 0xb2, 0x6e, 0xbd, 0x8d, 0xf8, 0x26, 0x81, 0x87, 0xc0, 0x46, 0xa4, 0x52,
-	0x66, 0x27, 0x65, 0x1e, 0x14, 0xb8, 0x46, 0xb1, 0x05, 0x4c, 0x92, 0x4a, 0x79, 0xb7, 0x65, 0xe9,
-	0x14, 0x9e, 0x81, 0xed, 0x4f, 0xc9, 0x13, 0x8d, 0xd2, 0xc6, 0x3b, 0xe3, 0xd5, 0xa0, 0xc0, 0x93,
-	0x0c, 0x9e, 0x00, 0xf3, 0x3d, 0xd9, 0xb0, 0x4d, 0x01, 0xe8, 0x82, 0xe4, 0xab, 0xe8, 0x11, 0xbe,
-	0x27, 0x2f, 0x6d, 0x60, 0x9e, 0x18, 0xb9, 0x9f, 0xc1, 0xee, 0xcd, 0x95, 0x58, 0x22, 0x42, 0x49,
-	0x91, 0x98, 0x19, 0xc9, 0x8c, 0x9b, 0xb7, 0x3e, 0x83, 0xf1, 0x3c, 0xa0, 0x6f, 0x46, 0x27, 0xe3,
-	0x49, 0x80, 0xc7, 0xc0, 0xfc, 0x59, 0x90, 0xb5, 0x25, 0xdd, 0x9d, 0x6b, 0xdc, 0xfd, 0x63, 0xc1,
-	0x7f, 0x9d, 0x28, 0xa2, 0x79, 0xa0, 0x07, 0x8f, 0x49, 0x76, 0xc4, 0x48, 0x3e, 0x3a, 0xbe, 0x09,
-	0x95, 0x29, 0x79, 0x01, 0x89, 0xab, 0x8f, 0xe9, 0xa1, 0xad, 0x63, 0x74, 0x61, 0x2f, 0x12, 0x14,
-	0xdf, 0x84, 0xa3, 0x2b, 0xa3, 0x80, 0x99, 0xbe, 0x1c, 0x86, 0x2d, 0xa8, 0xa5, 0xf1, 0x9d, 0x1e,
-	0x5d, 0x32, 0x25, 0x59, 0x48, 0x4f, 0x49, 0x26, 0x6a, 0x85, 0x63, 0x65, 0xdc, 0x60, 0x3c, 0x87,
-	0xe1, 0x2b, 0x70, 0x28, 0x11, 0xda, 0x28, 0xb7, 0xd8, 0xda, 0x4d, 0x6d, 0x0a, 0x5f, 0x65, 0xdc,
-	0x0f, 0x50, 0xcf, 0xed, 0xc4, 0x49, 0x3d, 0xba, 0x52, 0x03, 0x1c, 0x99, 0xdc, 0x88, 0xd9, 0xa8,
-	0xc2, 0x57, 0xa1, 0xfb, 0xd3, 0x82, 0x7f, 0x39, 0x7d, 0x5d, 0x90, 0x54, 0xf7, 0xa1, 0xa2, 0x27,
-	0x4d, 0x69, 0x41, 0xcd, 0xf7, 0xe6, 0xc1, 0x38, 0xf0, 0x14, 0xad, 0x7d, 0xc9, 0x42, 0x66, 0x29,
-	0x4f, 0xaa, 0x6d, 0x6b, 0xb2, 0x18, 0x9e, 0x00, 0x4c, 0x3d, 0x99, 0x77, 0x26, 0x83, 0xb8, 0x9f,
-	0x60, 0x3f, 0x23, 0xe6, 0xa9, 0x6d, 0x5a, 0x50, 0x8b, 0x43, 0x45, 0x7d, 0xe1, 0xcd, 0x15, 0x05,
-	0xe9, 0x46, 0x59, 0xe8, 0xfc, 0x1c, 0x8a, 0xb7, 0x11, 0x3a, 0xc0, 0xfa, 0xbd, 0xbb, 0x7a, 0x41,
-	0x3f, 0x86, 0xbd, 0xbb, 0xba, 0x85, 0x55, 0xb0, 0xbb, 0x37, 0xbd, 0x0e, 0xaf, 0x17, 0x35, 0xd6,
-	0xed, 0x0c, 0xeb, 0xac, 0xfd, 0xcb, 0x02, 0xe7, 0x3a, 0x1e, 0xaa, 0x50, 0x10, 0x1e, 0x01, 0xeb,
-	0x93, 0xc2, 0xd5, 0xe5, 0x37, 0x21, 0xf9, 0x89, 0x9a, 0x5f, 0x53, 0x01, 0xcf, 0x80, 0x0d, 0x49,
-	0x61, 0xee, 0xf4, 0xb7, 0x4a, 0x5a, 0x60, 0x77, 0xcd, 0x9d, 0x6f, 0x6e, 0x7f, 0xab, 0xe2, 0xd4,
-	0xf0, 0x62, 0xe6, 0xf4, 0xf3, 0x05, 0xed, 0x1f, 0x16, 0x94, 0xb8, 0xf7, 0x45, 0xe1, 0x7b, 0xf8,
-	0x27, 0xf7, 0x71, 0xf1, 0x99, 0xae, 0xdb, 0xb9, 0xe1, 0xe6, 0xc1, 0x0e, 0xcc, 0x49, 0x33, 0xbd,
-	0x83, 0x5a, 0xc6, 0x4c, 0xfc, 0x3f, 0x61, 0xc9, 0x7d, 0xea, 0x26, 0x6e, 0x81, 0xa6, 0xf3, 0xa1,
-	0x6c, 0xfe, 0xc8, 0xdf, 0xfe, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xa9, 0x7f, 0x93, 0x63, 0xd4, 0x05,
-	0x00, 0x00,
+	// 1086 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xbc, 0x56, 0xdd, 0x6e, 0xe3, 0xc4,
+	0x17, 0xb7, 0xe3, 0x38, 0x4e, 0x4e, 0xb6, 0xd9, 0x74, 0xfe, 0xfb, 0x87, 0xd0, 0xed, 0x76, 0xb3,
+	0xb3, 0x2b, 0x40, 0x45, 0x54, 0x55, 0xe0, 0x02, 0x21, 0x84, 0x48, 0xb3, 0xd9, 0xa6, 0x6a, 0x51,
+	0xab, 0x49, 0xb5, 0xf7, 0xae, 0x7d, 0x6a, 0x45, 0x4d, 0x6c, 0x33, 0x33, 0x0d, 0x44, 0xdc, 0x70,
+	0x8f, 0xb8, 0xe0, 0x92, 0x2b, 0x10, 0x4f, 0xc1, 0x73, 0xf0, 0x18, 0x3c, 0x05, 0x9a, 0xf1, 0x38,
+	0xb1, 0xd3, 0x86, 0x95, 0x56, 0x02, 0xa9, 0x52, 0x67, 0xce, 0xc7, 0x9c, 0xdf, 0xf9, 0xf9, 0x7c,
+	0x04, 0xea, 0x37, 0xf3, 0x83, 0x94, 0x27, 0x32, 0x21, 0x95, 0xf4, 0x8a, 0xbe, 0x0b, 0xce, 0x29,
+	0x2e, 0x48, 0x1b, 0x9c, 0x1b, 0x5c, 0x74, 0xec, 0xae, 0xfd, 0x61, 0x83, 0xa9, 0x23, 0x7d, 0x02,
+	0xee, 0x6b, 0x7f, 0x7a, 0x8b, 0xe4, 0x11, 0xb8, 0x73, 0x75, 0x30, 0xca, 0xec, 0x42, 0x7b, 0x50,
+	0x3f, 0xc5, 0x45, 0x66, 0x71, 0xc7, 0x79, 0xe5, 0x53, 0x29, 0xfa, 0x34, 0xc0, 0x1b, 0xdf, 0x06,
+	0x01, 0x0a, 0x41, 0xdf, 0x03, 0x77, 0xc8, 0x79, 0xc2, 0x95, 0xef, 0x4c, 0x44, 0xb9, 0xef, 0x4c,
+	0x44, 0xf4, 0x18, 0x6a, 0x83, 0xfe, 0xb8, 0xcf, 0x23, 0xb2, 0x0b, 0x95, 0x9b, 0xb9, 0x56, 0x35,
+	0x7b, 0x0f, 0x0e, 0xd2, 0xab, 0x83, 0x3c, 0x22, 0xab, 0xdc, 0xcc, 0xc9, 0xd3, 0x62, 0x8c, 0x66,
+	0xaf, 0xa1, 0x0c, 0x32, 0xad, 0x09, 0xe7, 0x81, 0x3b, 0x9c, 0xa5, 0x72, 0x41, 0x29, 0xd4, 0x19,
+	0x86, 0x13, 0x8e, 0x81, 0x24, 0xef, 0x40, 0x4d, 0x20, 0x9f, 0x23, 0x37, 0x21, 0xcd, 0x8d, 0x7e,
+	0x0f, 0x35, 0x86, 0xe2, 0x76, 0x2a, 0xc9, 0x3e, 0xd4, 0xb9, 0xb1, 0x2e, 0xc6, 0xce, 0x5f, 0x18,
+	0x59, 0x6c, 0xa9, 0x27, 0x7b, 0x1a, 0x61, 0xe5, 0x2e, 0xc2, 0x91, 0xa5, 0x31, 0x3e, 0x06, 0x5b,
+	0x74, 0x1c, 0xad, 0x6e, 0x2a, 0xb5, 0x49, 0x7f, 0x64, 0x31, 0x5b, 0x1c, 0xd5, 0xa1, 0xc6, 0x75,
+	0x48, 0xfa, 0x87, 0x0d, 0xde, 0x20, 0x99, 0xcd, 0xfc, 0x38, 0x24, 0x2f, 0xa0, 0x91, 0xa4, 0xc8,
+	0x7d, 0x39, 0x49, 0x62, 0x1d, 0xbf, 0xd5, 0xab, 0x29, 0xd7, 0xf3, 0x94, 0xad, 0x14, 0xe4, 0x31,
+	0x38, 0x11, 0x4a, 0x13, 0xd9, 0x33, 0x91, 0x47, 0x16, 0x53, 0x52, 0xd2, 0x05, 0x47, 0xa0, 0x34,
+	0x71, 0xd7, 0x61, 0x29, 0x15, 0x79, 0x06, 0x6e, 0x30, 0x45, 0x9f, 0x77, 0xaa, 0x2b, 0xee, 0x34,
+	0x57, 0x23, 0x8b, 0x65, 0x1a, 0xb2, 0x07, 0x4e, 0xe0, 0x8b, 0x8e, 0xab, 0x0d, 0x40, 0x19, 0x64,
+	0x5f, 0x45, 0x3d, 0x11, 0xf8, 0xe2, 0xc8, 0x05, 0xc7, 0xe7, 0x11, 0xbd, 0x00, 0x77, 0x18, 0x4b,
+	0xbe, 0x20, 0x04, 0xaa, 0x12, 0xf9, 0x4c, 0x43, 0x76, 0x98, 0x3e, 0xab, 0x32, 0x98, 0xc4, 0x21,
+	0x7e, 0xa7, 0x71, 0x3a, 0x2c, 0xbb, 0x90, 0x27, 0xe0, 0x04, 0xb3, 0xb0, 0x48, 0x8b, 0xc9, 0x9d,
+	0x29, 0x39, 0xfd, 0xd3, 0x86, 0xed, 0x7e, 0x9a, 0x62, 0x1c, 0xaa, 0x87, 0x27, 0x28, 0xfa, 0x3c,
+	0x12, 0xf7, 0x3e, 0xbf, 0x03, 0xf5, 0x29, 0xfa, 0x21, 0xf2, 0x93, 0x97, 0xa6, 0xd0, 0x96, 0x77,
+	0x42, 0xe1, 0x41, 0xca, 0x71, 0x7e, 0x96, 0x44, 0x27, 0x1a, 0x81, 0xa3, 0xfd, 0x4a, 0x32, 0xd2,
+	0x85, 0xa6, 0xb9, 0x5f, 0xaa, 0xa7, 0xab, 0xda, 0xa4, 0x28, 0x52, 0xaf, 0x64, 0x2f, 0x2a, 0x84,
+	0x13, 0xa9, 0xd9, 0x70, 0x58, 0x49, 0x46, 0x9e, 0x83, 0x87, 0x19, 0xd0, 0x4e, 0xad, 0xeb, 0x2c,
+	0xd9, 0x54, 0xa4, 0xb0, 0x5c, 0x43, 0xbf, 0x82, 0x76, 0x29, 0x27, 0x86, 0xf2, 0xde, 0x94, 0x3a,
+	0xe0, 0x89, 0xac, 0x46, 0x74, 0x46, 0x75, 0x96, 0x5f, 0xe9, 0x8f, 0x36, 0x3c, 0x64, 0xf8, 0xcd,
+	0x2d, 0x0a, 0xf9, 0x3a, 0x91, 0xb8, 0x91, 0x94, 0x2e, 0x34, 0x03, 0x3f, 0x0e, 0x27, 0xa1, 0x2f,
+	0x71, 0xc9, 0x4b, 0x51, 0xa4, 0x93, 0xf2, 0x85, 0x5c, 0xa7, 0xa6, 0x28, 0x23, 0x7b, 0x00, 0x53,
+	0x5f, 0x94, 0x99, 0x29, 0x48, 0xe8, 0x2b, 0x68, 0x15, 0xc0, 0x6c, 0xca, 0xa6, 0x0b, 0xcd, 0x79,
+	0x22, 0xf1, 0x98, 0xfb, 0xb1, 0xc4, 0xd0, 0x64, 0x54, 0x14, 0xd1, 0x08, 0xb6, 0x06, 0xd3, 0x09,
+	0xc6, 0xd2, 0xbc, 0x46, 0x76, 0xd7, 0xcb, 0xbf, 0x51, 0x2c, 0xfb, 0x5d, 0x68, 0xc8, 0xc9, 0x0c,
+	0x85, 0xf4, 0x67, 0xa9, 0x29, 0xaa, 0x95, 0x40, 0xd5, 0x43, 0xa0, 0x1f, 0x3b, 0x79, 0xa9, 0x93,
+	0x6a, 0xb0, 0xe5, 0x9d, 0xfe, 0x6e, 0x43, 0x2b, 0x8f, 0x24, 0xd2, 0x24, 0x16, 0xa8, 0x46, 0xc1,
+	0x7c, 0x82, 0xdf, 0x9e, 0x84, 0x06, 0xb3, 0xb9, 0xbd, 0x7d, 0x10, 0xc5, 0x41, 0x9c, 0x84, 0xa8,
+	0xf9, 0x6a, 0x30, 0x7d, 0x26, 0xfb, 0x00, 0xea, 0x7f, 0x36, 0x5c, 0x8a, 0xed, 0x94, 0x49, 0x58,
+	0x41, 0x4b, 0x7f, 0xb3, 0x61, 0xeb, 0x82, 0xe3, 0x05, 0xc7, 0xd4, 0xe7, 0xf8, 0xb5, 0x88, 0x36,
+	0x62, 0xdc, 0x03, 0x10, 0x8a, 0xb1, 0x38, 0xc8, 0x3f, 0xb2, 0xc3, 0x0a, 0x12, 0xe5, 0x17, 0x4e,
+	0x22, 0x14, 0xd2, 0x60, 0x34, 0x37, 0xf2, 0x11, 0x78, 0x3c, 0x63, 0xda, 0xb4, 0xfe, 0xb6, 0xee,
+	0xbf, 0xe2, 0x27, 0x60, 0xb9, 0xc5, 0x32, 0x1d, 0x77, 0x95, 0x0e, 0x4d, 0x01, 0xfe, 0x45, 0x78,
+	0xf7, 0x10, 0x48, 0x13, 0x68, 0x64, 0x9d, 0xf6, 0x5f, 0x05, 0xfc, 0xd9, 0x86, 0xfa, 0x59, 0x12,
+	0x65, 0x63, 0xed, 0x63, 0xf0, 0x52, 0x8e, 0xea, 0xcf, 0x2c, 0x03, 0x4d, 0x58, 0xe9, 0x23, 0x8d,
+	0x2c, 0x96, 0xdb, 0x90, 0x17, 0x50, 0xd5, 0xb6, 0xd9, 0x60, 0x6e, 0x19, 0xdb, 0x95, 0xa1, 0xd6,
+	0x92, 0x0f, 0xa0, 0x16, 0x64, 0x03, 0x25, 0x1b, 0x82, 0x5b, 0xf9, 0x10, 0xd4, 0x49, 0x8e, 0x2c,
+	0x66, 0xd4, 0x47, 0x1e, 0xb8, 0x6a, 0x82, 0x2c, 0xe8, 0xaf, 0x36, 0x3c, 0xbc, 0xb8, 0xba, 0x56,
+	0xea, 0x7e, 0x10, 0x60, 0x2a, 0x31, 0x7c, 0x6b, 0x2e, 0x0a, 0x33, 0xc6, 0x29, 0xcd, 0x18, 0xf2,
+	0x3e, 0xb4, 0xe4, 0x22, 0xc5, 0xf3, 0xeb, 0x3c, 0x86, 0xe1, 0x65, 0x4d, 0x7a, 0x5f, 0x61, 0xec,
+	0xef, 0x43, 0xe5, 0x3c, 0x25, 0x1e, 0x38, 0xc7, 0xc3, 0xcb, 0xb6, 0xa5, 0x0e, 0xe3, 0xe1, 0x65,
+	0xdb, 0x26, 0x0d, 0x70, 0x07, 0x67, 0xc3, 0x3e, 0x6b, 0x57, 0x94, 0x6c, 0xd0, 0x1f, 0xb7, 0x9d,
+	0xde, 0x4f, 0x36, 0x78, 0xa7, 0xf3, 0xb1, 0x4c, 0x38, 0x92, 0x5d, 0x70, 0x8e, 0x51, 0x92, 0x7c,
+	0x87, 0xed, 0x14, 0x7a, 0x83, 0x5a, 0xe4, 0x19, 0x38, 0x63, 0x94, 0xa4, 0xb4, 0xc4, 0xd6, 0x4c,
+	0xba, 0xe0, 0x0e, 0xf4, 0xc6, 0x5a, 0x6d, 0xb1, 0x35, 0x8b, 0xa7, 0x3a, 0x2e, 0x29, 0x2c, 0xb1,
+	0xb2, 0x41, 0xef, 0x17, 0x1b, 0x9a, 0x06, 0xcf, 0xc5, 0xd1, 0xab, 0x4b, 0xb5, 0xfb, 0x36, 0x63,
+	0x3a, 0xb4, 0xc9, 0xf3, 0x37, 0xa2, 0x3a, 0xb4, 0x09, 0x7d, 0x13, 0xae, 0x43, 0x5b, 0xa5, 0xf7,
+	0x8f, 0xc8, 0x0e, 0xed, 0xde, 0x0f, 0x36, 0x54, 0x99, 0x7f, 0x2d, 0xc9, 0x97, 0xb0, 0x55, 0x5a,
+	0x21, 0xe4, 0xff, 0xca, 0xf2, 0xce, 0xa6, 0xdc, 0x79, 0x74, 0x47, 0xcc, 0x50, 0xb1, 0xf0, 0x19,
+	0x34, 0x0b, 0x23, 0x9b, 0xfc, 0x2f, 0x8b, 0x53, 0x5a, 0x28, 0x3b, 0x64, 0x4d, 0xa8, 0x3d, 0x7b,
+	0x7f, 0xd9, 0x50, 0x55, 0xc5, 0x47, 0xbe, 0x80, 0xed, 0xd2, 0xa8, 0xd0, 0x64, 0xdd, 0x9d, 0x20,
+	0xd9, 0x33, 0xe5, 0x69, 0x4b, 0x2d, 0xf2, 0x39, 0xb4, 0x56, 0x7d, 0xb3, 0x72, 0x2d, 0xf5, 0xd2,
+	0x8e, 0x86, 0xb5, 0x56, 0xe9, 0xd4, 0x22, 0x9f, 0x42, 0xb3, 0xe8, 0xb8, 0xd6, 0x58, 0x9b, 0xbc,
+	0x7a, 0x00, 0x59, 0x57, 0x69, 0xa7, 0x72, 0x97, 0x6d, 0xf0, 0xb9, 0xaa, 0xe9, 0xdf, 0xc6, 0x9f,
+	0xfc, 0x1d, 0x00, 0x00, 0xff, 0xff, 0x40, 0xa7, 0xc5, 0x18, 0x27, 0x0b, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -1129,6 +1650,279 @@ var _KvStore_serviceDesc = grpc.ServiceDesc{
 	Metadata: "kv.proto",
 }
 
+// KvStorePBFTClient is the client API for KvStorePBFT service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type KvStorePBFTClient interface {
+	// Get the value associated with a key.
+	Get(ctx context.Context, in *Key, opts ...grpc.CallOption) (KvStorePBFT_GetClient, error)
+	Set(ctx context.Context, in *KeyValue, opts ...grpc.CallOption) (KvStorePBFT_SetClient, error)
+	Clear(ctx context.Context, in *Empty, opts ...grpc.CallOption) (KvStorePBFT_ClearClient, error)
+	CAS(ctx context.Context, in *CASArg, opts ...grpc.CallOption) (KvStorePBFT_CASClient, error)
+}
+
+type kvStorePBFTClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewKvStorePBFTClient(cc *grpc.ClientConn) KvStorePBFTClient {
+	return &kvStorePBFTClient{cc}
+}
+
+func (c *kvStorePBFTClient) Get(ctx context.Context, in *Key, opts ...grpc.CallOption) (KvStorePBFT_GetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_KvStorePBFT_serviceDesc.Streams[0], "/pb.KvStorePBFT/Get", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kvStorePBFTGetClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type KvStorePBFT_GetClient interface {
+	Recv() (*Result, error)
+	grpc.ClientStream
+}
+
+type kvStorePBFTGetClient struct {
+	grpc.ClientStream
+}
+
+func (x *kvStorePBFTGetClient) Recv() (*Result, error) {
+	m := new(Result)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *kvStorePBFTClient) Set(ctx context.Context, in *KeyValue, opts ...grpc.CallOption) (KvStorePBFT_SetClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_KvStorePBFT_serviceDesc.Streams[1], "/pb.KvStorePBFT/Set", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kvStorePBFTSetClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type KvStorePBFT_SetClient interface {
+	Recv() (*Result, error)
+	grpc.ClientStream
+}
+
+type kvStorePBFTSetClient struct {
+	grpc.ClientStream
+}
+
+func (x *kvStorePBFTSetClient) Recv() (*Result, error) {
+	m := new(Result)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *kvStorePBFTClient) Clear(ctx context.Context, in *Empty, opts ...grpc.CallOption) (KvStorePBFT_ClearClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_KvStorePBFT_serviceDesc.Streams[2], "/pb.KvStorePBFT/Clear", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kvStorePBFTClearClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type KvStorePBFT_ClearClient interface {
+	Recv() (*Result, error)
+	grpc.ClientStream
+}
+
+type kvStorePBFTClearClient struct {
+	grpc.ClientStream
+}
+
+func (x *kvStorePBFTClearClient) Recv() (*Result, error) {
+	m := new(Result)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *kvStorePBFTClient) CAS(ctx context.Context, in *CASArg, opts ...grpc.CallOption) (KvStorePBFT_CASClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_KvStorePBFT_serviceDesc.Streams[3], "/pb.KvStorePBFT/CAS", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &kvStorePBFTCASClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type KvStorePBFT_CASClient interface {
+	Recv() (*Result, error)
+	grpc.ClientStream
+}
+
+type kvStorePBFTCASClient struct {
+	grpc.ClientStream
+}
+
+func (x *kvStorePBFTCASClient) Recv() (*Result, error) {
+	m := new(Result)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// KvStorePBFTServer is the server API for KvStorePBFT service.
+type KvStorePBFTServer interface {
+	// Get the value associated with a key.
+	Get(*Key, KvStorePBFT_GetServer) error
+	Set(*KeyValue, KvStorePBFT_SetServer) error
+	Clear(*Empty, KvStorePBFT_ClearServer) error
+	CAS(*CASArg, KvStorePBFT_CASServer) error
+}
+
+func RegisterKvStorePBFTServer(s *grpc.Server, srv KvStorePBFTServer) {
+	s.RegisterService(&_KvStorePBFT_serviceDesc, srv)
+}
+
+func _KvStorePBFT_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Key)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(KvStorePBFTServer).Get(m, &kvStorePBFTGetServer{stream})
+}
+
+type KvStorePBFT_GetServer interface {
+	Send(*Result) error
+	grpc.ServerStream
+}
+
+type kvStorePBFTGetServer struct {
+	grpc.ServerStream
+}
+
+func (x *kvStorePBFTGetServer) Send(m *Result) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _KvStorePBFT_Set_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(KeyValue)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(KvStorePBFTServer).Set(m, &kvStorePBFTSetServer{stream})
+}
+
+type KvStorePBFT_SetServer interface {
+	Send(*Result) error
+	grpc.ServerStream
+}
+
+type kvStorePBFTSetServer struct {
+	grpc.ServerStream
+}
+
+func (x *kvStorePBFTSetServer) Send(m *Result) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _KvStorePBFT_Clear_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(KvStorePBFTServer).Clear(m, &kvStorePBFTClearServer{stream})
+}
+
+type KvStorePBFT_ClearServer interface {
+	Send(*Result) error
+	grpc.ServerStream
+}
+
+type kvStorePBFTClearServer struct {
+	grpc.ServerStream
+}
+
+func (x *kvStorePBFTClearServer) Send(m *Result) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _KvStorePBFT_CAS_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(CASArg)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(KvStorePBFTServer).CAS(m, &kvStorePBFTCASServer{stream})
+}
+
+type KvStorePBFT_CASServer interface {
+	Send(*Result) error
+	grpc.ServerStream
+}
+
+type kvStorePBFTCASServer struct {
+	grpc.ServerStream
+}
+
+func (x *kvStorePBFTCASServer) Send(m *Result) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+var _KvStorePBFT_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.KvStorePBFT",
+	HandlerType: (*KvStorePBFTServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Get",
+			Handler:       _KvStorePBFT_Get_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Set",
+			Handler:       _KvStorePBFT_Set_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "Clear",
+			Handler:       _KvStorePBFT_Clear_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "CAS",
+			Handler:       _KvStorePBFT_CAS_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "kv.proto",
+}
+
 // RaftClient is the client API for Raft service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
@@ -1220,6 +2014,169 @@ var _Raft_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestVote",
 			Handler:    _Raft_RequestVote_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "kv.proto",
+}
+
+// PbftClient is the client API for Pbft service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
+type PbftClient interface {
+	ClientRequestPBFT(ctx context.Context, in *ClientRequest, opts ...grpc.CallOption) (*ClientResponse, error)
+	PrePreparePBFT(ctx context.Context, in *PrePrepareMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error)
+	PreparePBFT(ctx context.Context, in *PrepareMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error)
+	CommitPBFT(ctx context.Context, in *CommitMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error)
+}
+
+type pbftClient struct {
+	cc *grpc.ClientConn
+}
+
+func NewPbftClient(cc *grpc.ClientConn) PbftClient {
+	return &pbftClient{cc}
+}
+
+func (c *pbftClient) ClientRequestPBFT(ctx context.Context, in *ClientRequest, opts ...grpc.CallOption) (*ClientResponse, error) {
+	out := new(ClientResponse)
+	err := c.cc.Invoke(ctx, "/pb.Pbft/ClientRequestPBFT", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pbftClient) PrePreparePBFT(ctx context.Context, in *PrePrepareMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error) {
+	out := new(PbftMsgAccepted)
+	err := c.cc.Invoke(ctx, "/pb.Pbft/PrePreparePBFT", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pbftClient) PreparePBFT(ctx context.Context, in *PrepareMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error) {
+	out := new(PbftMsgAccepted)
+	err := c.cc.Invoke(ctx, "/pb.Pbft/PreparePBFT", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pbftClient) CommitPBFT(ctx context.Context, in *CommitMsg, opts ...grpc.CallOption) (*PbftMsgAccepted, error) {
+	out := new(PbftMsgAccepted)
+	err := c.cc.Invoke(ctx, "/pb.Pbft/CommitPBFT", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PbftServer is the server API for Pbft service.
+type PbftServer interface {
+	ClientRequestPBFT(context.Context, *ClientRequest) (*ClientResponse, error)
+	PrePreparePBFT(context.Context, *PrePrepareMsg) (*PbftMsgAccepted, error)
+	PreparePBFT(context.Context, *PrepareMsg) (*PbftMsgAccepted, error)
+	CommitPBFT(context.Context, *CommitMsg) (*PbftMsgAccepted, error)
+}
+
+func RegisterPbftServer(s *grpc.Server, srv PbftServer) {
+	s.RegisterService(&_Pbft_serviceDesc, srv)
+}
+
+func _Pbft_ClientRequestPBFT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ClientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PbftServer).ClientRequestPBFT(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Pbft/ClientRequestPBFT",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PbftServer).ClientRequestPBFT(ctx, req.(*ClientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Pbft_PrePreparePBFT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrePrepareMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PbftServer).PrePreparePBFT(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Pbft/PrePreparePBFT",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PbftServer).PrePreparePBFT(ctx, req.(*PrePrepareMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Pbft_PreparePBFT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PbftServer).PreparePBFT(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Pbft/PreparePBFT",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PbftServer).PreparePBFT(ctx, req.(*PrepareMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Pbft_CommitPBFT_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CommitMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PbftServer).CommitPBFT(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/pb.Pbft/CommitPBFT",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PbftServer).CommitPBFT(ctx, req.(*CommitMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+var _Pbft_serviceDesc = grpc.ServiceDesc{
+	ServiceName: "pb.Pbft",
+	HandlerType: (*PbftServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ClientRequestPBFT",
+			Handler:    _Pbft_ClientRequestPBFT_Handler,
+		},
+		{
+			MethodName: "PrePreparePBFT",
+			Handler:    _Pbft_PrePreparePBFT_Handler,
+		},
+		{
+			MethodName: "PreparePBFT",
+			Handler:    _Pbft_PreparePBFT_Handler,
+		},
+		{
+			MethodName: "CommitPBFT",
+			Handler:    _Pbft_CommitPBFT_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

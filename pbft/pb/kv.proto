@@ -60,6 +60,15 @@ service KvStore {
     rpc CAS(CASArg) returns (Result) {}
 }
 
+// KvStore service
+service KvStorePBFT {
+    // Get the value associated with a key.
+    rpc Get (Key) returns (stream Result) {}
+    rpc Set (KeyValue) returns (stream Result) {}
+    rpc Clear(Empty) returns (stream Result) {}
+    rpc CAS(CASArg) returns (stream Result) {}
+}
+
 // Internal representations for operations.
 enum Op {
     GET = 0;
@@ -120,4 +129,70 @@ message RequestVoteRet {
 service Raft {
     rpc AppendEntries(AppendEntriesArgs) returns (AppendEntriesRet) {}
     rpc RequestVote(RequestVoteArgs) returns (RequestVoteRet) {}
+}
+
+
+////////////////////////// PBFT //////////////////////////
+
+// Request from client
+message ClientRequest {
+    string operation = 1;
+    int64 timestamp = 2;
+	string clientID = 3;
+	// int64 sequenceID = 4; // Is this set by the client or primary?
+}
+
+// Response to client
+message ClientResponse {
+    int64 viewId = 1;
+    int64 timestamp = 2;
+    string clientID = 3;
+    string node = 4;
+    Result nodeResult = 5;
+    // int64 sequenceID = 6; // Again not in the paper. Required?
+}
+
+message PrePrepareMsg {
+    int64 viewId = 1;
+    int64 sequenceID = 2;
+    string digest = 3;
+    ClientRequest request = 4;
+    string node = 5;
+}
+
+message PrepareMsg {
+    int64 viewId = 1;
+    int64 sequenceID = 2;
+    string digest = 3;
+    string node = 4;
+}
+
+message CommitMsg {
+    int64 viewId = 1;
+    int64 sequenceID = 2;
+    string digest = 3;
+    string node = 4;
+}
+
+message LogEntry {
+    oneof entry {
+        PrePrepareMsg preprep = 1;
+        PrepareMsg prep = 2;
+        CommitMsg commit = 3;
+    }
+}
+
+message PbftMsgAccepted {
+    int64 viewId = 1;
+    int64 sequenceID = 2;
+    bool success = 3;
+    string typeOfAccepted = 4;
+    string node = 5;
+}
+
+service Pbft {
+    rpc ClientRequestPBFT(ClientRequest) returns (ClientResponse) {}
+    rpc PrePreparePBFT(PrePrepareMsg) returns (PbftMsgAccepted) {}
+    rpc PreparePBFT(PrepareMsg) returns (PbftMsgAccepted) {}
+    rpc CommitPBFT(CommitMsg) returns (PbftMsgAccepted) {}
 }

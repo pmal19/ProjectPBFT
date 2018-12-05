@@ -1,98 +1,110 @@
 package main
 
 import (
+	"ProjectPBFT/pbft/pb"
+	"ProjectPBFT/pbft/util"
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	context "golang.org/x/net/context"
+
 	"google.golang.org/grpc"
-	"ProjectPBFT/pbft/pb"
 )
 
-func usage() {
-	fmt.Printf("Usage %s <endpoint>\n", os.Args[0])
-	flag.PrintDefaults()
+// Is this needed??
+type ClientResponse struct {
+	ret  *pb.ClientResponse
+	err  error
+	node string
+}
+
+func callCommand(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse) {
+	log.Printf("callCommand - somthing")
+	// call util.ClientRequestPBFT
+	// do grpc call to primary - succ or redirect
+	// while loop till f+1 correct responses from all nodes through some
+	// channel using grpc
+	// return with the result
+
+	req := pb.ClientRequest{Operation: "Operation", Timestamp: 123, ClientID: "TheOneAndOnly"}
+	ret, err := primaryConn.ClientRequestPBFT(context.Background(), &req)
+	clientResponseChan <- ClientResponse{ret: ret, err: err, node: primary}
+	// for p, c := range peerClients {
+	// 	go func(c pb.RaftClient, p string) {
+	// 		ret, err := c.ClientRequestPBFT(context.Background(), &req)
+	// 		appendResponseChan <- AppendResponse{ret: ret, err: err, peer: p, lenOfEntries: int64(0)}
+	// 	}(c, p)
+	// 	log.Printf("iAmStillRunning %v Sending heartbeat from %v to %v currentTerm %v", iAmStillRunning, currentLeaderID, p, currentTerm)
+	// }
+}
+
+func waitForSufficientResponses(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse) {
+	numberOfValidResponses := 0
+	for numberOfValidResponses < 2 {
+		pbftClr := <-clientResponseChan
+		log.Printf("Recieved from %v", pbftClr.ret.Node)
+		// Check something here and increment
+	}
+}
+
+type KvStoreClient struct {
+	Store map[string]string
 }
 
 func main() {
-	// Take endpoint as input
-	flag.Usage = usage
+
+	// var clientPort int
+	var pbftPort int
+	var primary string
+
+	// flag.IntVar(&clientPort, "port", 3000,
+	// 	"Port on which server should listen to client requests")
+	flag.IntVar(&pbftPort, "pbft", 3001,
+		"Port on which client should listen to PBFT responses")
+
+	flag.String(primary, "primary", "Primary")
 	flag.Parse()
-	// If there is no endpoint fail
-	if flag.NArg() == 0 {
-		flag.Usage()
-		os.Exit(1)
-	}
-	endpoint := flag.Args()[0]
-	log.Printf("Connecting to %v", endpoint)
-	// Connect to the server. We use WithInsecure since we do not configure https in this class.
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
-	//Ensure connection did not fail.
-	if err != nil {
-		log.Fatalf("Failed to dial GRPC server %v", err)
-	}
-	log.Printf("Connected")
-	// Create a KvStore client
-	kvc := pb.NewKvStoreClient(conn)
-	// Clear KVC
-	res, err := kvc.Clear(context.Background(), &pb.Empty{})
-	if err != nil {
-		log.Fatalf("Could not clear")
-	}
 
-	// Put setting hello -> 1
-	putReq := &pb.KeyValue{Key: "hello", Value: "1"}
-	res, err = kvc.Set(context.Background(), putReq)
+	name, err := os.Hostname()
 	if err != nil {
-		log.Fatalf("Put error")
+		log.Fatalf("Could not get hostname")
 	}
-	log.Printf("Got response key: \"%v\" value:\"%v\"", res.GetKv().Key, res.GetKv().Value)
-	if res.GetKv().Key != "hello" || res.GetKv().Value != "1" {
-		log.Fatalf("Put returned the wrong response")
-	}
+	id := fmt.Sprintf("%s:%d", name, pbftPort)
+	log.Printf("Starting client with ID %s", id)
 
-	// Request value for hello
-	req := &pb.Key{Key: "hello"}
-	res, err = kvc.Get(context.Background(), req)
-	if err != nil {
-		log.Fatalf("Request error %v", err)
-	}
-	log.Printf("Got response key: \"%v\" value:\"%v\"", res.GetKv().Key, res.GetKv().Value)
-	if res.GetKv().Key != "hello" || res.GetKv().Value != "1" {
-		log.Fatalf("Get returned the wrong response")
-	}
+	// // Required??
+	// portString := fmt.Sprintf(":%d", clientPort)
+	// c, err := net.Listen("tcp", portString)
+	// if err != nil {
+	// 	log.Fatalf("Could not create listening socket %v", err)
+	// }
 
-	// Successfully CAS changing hello -> 2
-	casReq := &pb.CASArg{Kv: &pb.KeyValue{Key: "hello", Value: "1"}, Value: &pb.Value{Value: "2"}}
-	res, err = kvc.CAS(context.Background(), casReq)
-	if err != nil {
-		log.Fatalf("Request error %v", err)
-	}
-	log.Printf("Got response key: \"%v\" value:\"%v\"", res.GetKv().Key, res.GetKv().Value)
-	if res.GetKv().Key != "hello" || res.GetKv().Value != "2" {
-		log.Fatalf("Get returned the wrong response")
-	}
+	// Create a new GRPC server
+	s := grpc.NewServer()
+	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput)}
+	// go util.RunPbftServer(&pbft, pbftPort)
+	util.RunPbftServer(&pbft, pbftPort)
+	primaryConn, err := util.ConnectToPeer(primary)
+	// Initialize KVStore
+	store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
+	kvc := KvStoreClient{Store: make(map[string]string)}
+	clientResponseChan := make(chan ClientResponse)
 
-	// Unsuccessfully CAS
-	casReq = &pb.CASArg{Kv: &pb.KeyValue{Key: "hello", Value: "1"}, Value: &pb.Value{Value: "3"}}
-	res, err = kvc.CAS(context.Background(), casReq)
-	if err != nil {
-		log.Fatalf("Request error %v", err)
-	}
-	log.Printf("Got response key: \"%v\" value:\"%v\"", res.GetKv().Key, res.GetKv().Value)
-	if res.GetKv().Key != "hello" || res.GetKv().Value == "3" {
-		log.Fatalf("Get returned the wrong response")
-	}
+	// Tell GRPC that s will be serving requests for the KvStore service and should use store (defined on line 23)
+	// as the struct whose methods should be called in response.
+	// Is this really? Am I really using KVStore as grpc??
+	pb.RegisterKvStoreServer(s, &store)
+	// log.Printf("Going to listen on port %v", clientPort)
+	// Start serving, this will block this function and only return when done.
+	// if err := s.Serve(c); err != nil {
+	// 	log.Fatalf("Failed to serve %v", err)
+	// }
 
-	// CAS should fail for uninitialized variables
-	casReq = &pb.CASArg{Kv: &pb.KeyValue{Key: "hellooo", Value: "1"}, Value: &pb.Value{Value: "2"}}
-	res, err = kvc.CAS(context.Background(), casReq)
-	if err != nil {
-		log.Fatalf("Request error %v", err)
-	}
-	log.Printf("Got response key: \"%v\" value:\"%v\"", res.GetKv().Key, res.GetKv().Value)
-	if res.GetKv().Key != "hellooo" || res.GetKv().Value == "2" {
-		log.Fatalf("Get returned the wrong response")
-	}
+	callCommand(primary, &kvc, primaryConn, clientResponseChan)
+	req := pb.ClientRequest{Operation: "Operation", Timestamp: 123, ClientID: "TheOneAndOnly"}
+	ret, err := primaryConn.ClientRequestPBFT(context.Background(), &req)
+	clientResponseChan <- ClientResponse{ret: ret, err: err, node: primary}
+
+	log.Printf("Done listening")
 }

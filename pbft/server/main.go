@@ -1,31 +1,35 @@
 package main
 
 import (
+	"ProjectPBFT/pbft/pb"
+	"ProjectPBFT/pbft/util"
 	"flag"
 	"fmt"
 	"log"
-	rand "math/rand"
+	"math/rand"
 	"net"
 	"os"
 	"time"
+
 	"google.golang.org/grpc"
-	"ProjectPBFT/pbft/pb"
 )
 
 func main() {
-	// Argument parsing
 	var r *rand.Rand
 	var seed int64
-	var peers arrayPeers
+	var peers util.ArrayPeers
 	var clientPort int
-	var raftPort int
+	var pbftPort int
+	var client string
+
 	flag.Int64Var(&seed, "seed", -1,
 		"Seed for random number generator, values less than 0 result in use of time")
 	flag.IntVar(&clientPort, "port", 3000,
 		"Port on which server should listen to client requests")
-	flag.IntVar(&raftPort, "raft", 3001,
-		"Port on which server should listen to Raft requests")
+	flag.IntVar(&pbftPort, "pbft", 3001,
+		"Port on which server should listen to PBFT requests")
 	flag.Var(&peers, "peer", "A peer for this process")
+	flag.String(client, "client", "Client")
 	flag.Parse()
 
 	// Initialize the random number generator
@@ -42,7 +46,7 @@ func main() {
 		log.Fatalf("Could not get hostname")
 	}
 
-	id := fmt.Sprintf("%s:%d", name, raftPort)
+	id := fmt.Sprintf("%s:%d", name, pbftPort)
 	log.Printf("Starting peer with ID %s", id)
 
 	// Convert port to a string form
@@ -57,8 +61,8 @@ func main() {
 	s := grpc.NewServer()
 
 	// Initialize KVStore
-	store := KVStore{C: make(chan InputChannelType), store: make(map[string]string)}
-	go serve(&store, r, &peers, id, raftPort)
+	store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
+	go serve(&store, r, &peers, id, pbftPort, client)
 
 	// Tell GRPC that s will be serving requests for the KvStore service and should use store (defined on line 23)
 	// as the struct whose methods should be called in response.

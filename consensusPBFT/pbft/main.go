@@ -1,8 +1,8 @@
 package main
 
 import (
+	"ProjectPBFT/consensusPBFT/pbft/network"
 	"os"
-	"github.com/bigpicturelabs/consensusPBFT/pbft/network"
 )
 
 func main() {
