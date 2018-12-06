@@ -5,6 +5,7 @@ import (
 	"ProjectPBFT/pbft/util"
 	"log"
 	rand "math/rand"
+	"strings"
 	"time"
 )
 
@@ -15,7 +16,7 @@ import (
 // 	CommitMsgChan     chan CommitMsgInput
 // }
 
-func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, port int, client string) {
+func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, port int, client string, kvs *KvStoreServer) {
 	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput)}
 	go util.RunPbftServer(&pbft, port)
 	peerClients := make(map[string]pb.PbftClient)
@@ -27,6 +28,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 		peerClients[peer] = clientPeer
 		log.Printf("Connected to %v", peer)
 	}
+
 	clientConn, _ := util.ConnectToPeer(client)
 	peerClients[client] = clientConn
 
@@ -51,7 +53,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 	for {
 		select {
 		case <-timer.C:
-			log.Printf("Timeout")
+			// log.Printf("Timeout")
 			// for p, c := range peerClients {
 			// 	// go func(c pb.PbftClient, p string) {
 			// 	// 	ret, err := c.RequestVote(context.Background(), &pb.RequestVoteArgs{Term: 1, CandidateID: id})
@@ -64,6 +66,28 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 		// Should this be only in client?? pbftClr := <-pbft.ClientRequestChan
 		case pbftClr := <-pbft.ClientRequestChan:
 			log.Printf("Received ClientRequestChan %v", pbftClr.Arg.ClientID)
+			// Do something here as primary to return initially to client
+			clientId := pbftClr.Arg.ClientID
+			op := strings.Split(pbftClr.Arg.Operation, ":")
+			timestamp := pbftClr.Arg.Timestamp
+			operation := op[0]
+			key := op[1]
+			val := op[2]
+			res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
+			if operation == "set" {
+				kvs.Store[key] = val
+				// reset res
+				res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
+			} else if operation == "get" {
+				// reset res
+				val = kvs.Store[key]
+				res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
+			}
+			log.Printf("Received pbft client (%v) req for %v at %v", clientId, operation, timestamp)
+
+			responseBack := pb.ClientResponse{ViewId: 1, Timestamp: timestamp, ClientID: clientId, Node: id, NodeResult: &res}
+			log.Printf("Sending back responseBack - %v", responseBack)
+			pbftClr.Response <- responseBack
 		case pbftPrePrep := <-pbft.PrePrepareMsgChan:
 			log.Printf("Received PrePrepareMsgChan %v", pbftPrePrep.Arg.Node)
 		case pbftPre := <-pbft.PrepareMsgChan:

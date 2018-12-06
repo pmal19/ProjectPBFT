@@ -40,6 +40,7 @@ type Pbft struct {
 }
 
 func (r *Pbft) ClientRequestPBFT(ctx context.Context, arg *pb.ClientRequest) (*pb.ClientResponse, error) {
+	log.Printf("Inside ClientRequestPBFT arg %v ", arg)
 	c := make(chan pb.ClientResponse)
 	r.ClientRequestChan <- ClientRequestInput{Arg: arg, Response: c}
 	result := <-c
@@ -68,8 +69,8 @@ func (r *Pbft) CommitPBFT(ctx context.Context, arg *pb.CommitMsg) (*pb.PbftMsgAc
 }
 
 func RandomDuration(r *rand.Rand) time.Duration {
-	const DurationMax = 4000
-	const DurationMin = 1000
+	const DurationMax = 40000
+	const DurationMin = 10000
 	return time.Duration(r.Intn(DurationMax-DurationMin)+DurationMin) * time.Millisecond
 }
 
@@ -101,7 +102,11 @@ func ConnectToPeer(peer string) (pb.PbftClient, error) {
 	backoffConfig := grpc.DefaultBackoffConfig
 	backoffConfig.MaxDelay = 500 * time.Millisecond
 	conn, err := grpc.Dial(peer, grpc.WithInsecure(), grpc.WithBackoffConfig(backoffConfig))
+	log.Printf("ConnectToPeer peer %v", peer)
+	log.Printf("ConnectToPeer err %v", err)
+	log.Printf("ConnectToPeer conn %v", conn)
 	if err != nil {
+		log.Printf("ConnectToPeer err %v", err)
 		return pb.NewPbftClient(nil), err
 	}
 	return pb.NewPbftClient(conn), nil

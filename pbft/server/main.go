@@ -14,6 +14,10 @@ import (
 	"google.golang.org/grpc"
 )
 
+type KvStoreServer struct {
+	Store map[string]string
+}
+
 func main() {
 	var r *rand.Rand
 	var seed int64
@@ -22,15 +26,14 @@ func main() {
 	var pbftPort int
 	var client string
 
-	flag.Int64Var(&seed, "seed", -1,
-		"Seed for random number generator, values less than 0 result in use of time")
-	flag.IntVar(&clientPort, "port", 3000,
-		"Port on which server should listen to client requests")
-	flag.IntVar(&pbftPort, "pbft", 3001,
-		"Port on which server should listen to PBFT requests")
+	flag.Int64Var(&seed, "seed", -1, "Seed for random number generator, values less than 0 result in use of time")
+	flag.IntVar(&clientPort, "port", 3000, "Port on which server should listen to client requests")
+	flag.IntVar(&pbftPort, "pbft", 3001, "Port on which server should listen to PBFT requests")
 	flag.Var(&peers, "peer", "A peer for this process")
-	flag.String(client, "client", "Client")
+	flag.StringVar(&client, "client", "127.0.0.1:3002", "Pbft client")
 	flag.Parse()
+
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Initialize the random number generator
 	if seed < 0 {
@@ -49,6 +52,7 @@ func main() {
 	id := fmt.Sprintf("%s:%d", name, pbftPort)
 	log.Printf("Starting peer with ID %s", id)
 
+	// This part might be redundant
 	// Convert port to a string form
 	portString := fmt.Sprintf(":%d", clientPort)
 	// Create socket that listens on the supplied port
@@ -62,7 +66,10 @@ func main() {
 
 	// Initialize KVStore
 	store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
-	go serve(&store, r, &peers, id, pbftPort, client)
+
+	kvs := KvStoreServer{Store: make(map[string]string)}
+
+	go serve(&store, r, &peers, id, pbftPort, client, &kvs)
 
 	// Tell GRPC that s will be serving requests for the KvStore service and should use store (defined on line 23)
 	// as the struct whose methods should be called in response.
