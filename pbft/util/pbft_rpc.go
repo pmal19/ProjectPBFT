@@ -2,6 +2,9 @@ package util
 
 import (
 	"ProjectPBFT/pbft/pb"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -69,8 +72,8 @@ func (r *Pbft) CommitPBFT(ctx context.Context, arg *pb.CommitMsg) (*pb.PbftMsgAc
 }
 
 func RandomDuration(r *rand.Rand) time.Duration {
-	const DurationMax = 40000
-	const DurationMin = 10000
+	const DurationMax = 4000
+	const DurationMin = 1000
 	return time.Duration(r.Intn(DurationMax-DurationMin)+DurationMin) * time.Millisecond
 }
 
@@ -110,4 +113,19 @@ func ConnectToPeer(peer string) (pb.PbftClient, error) {
 		return pb.NewPbftClient(nil), err
 	}
 	return pb.NewPbftClient(conn), nil
+}
+
+func Hash(content []byte) string {
+	h := sha256.New()
+	h.Write(content)
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+func Digest(object interface{}) string {
+	msg, err := json.Marshal(object)
+	if err != nil {
+		// return "", err
+		log.Fatal("Cannot make digest")
+	}
+	return Hash(msg)
 }

@@ -21,12 +21,17 @@ type Welcome struct {
 	ReturnValue string
 }
 
-// Is this needed??
 type ClientResponse struct {
 	ret  *pb.ClientResponse
 	err  error
 	node string
 }
+
+// type PbftMsgAccepted struct {
+// 	ret  *pb.PbftMsgAccepted
+// 	err  error
+// 	peer string
+// }
 
 // call util.ClientRequestPBFT
 // do grpc call to primary - succ or redirect
@@ -42,20 +47,24 @@ func callCommand(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, 
 	clientResponseChan <- ClientResponse{ret: ret, err: err, node: primary}
 }
 
-func waitForSufficientResponses(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string) string {
+func waitForSufficientResponses(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string, pbft util.Pbft) string {
 	log.Printf("waiting for " + command + ":" + key + ":" + value + " - commit from nodes")
 	numberOfValidResponses := 0
-	// succ := <-clientResponseChan // Initial success message
-	// log.Printf("Initial succ recieved - %v", succ)
+	succ := <-clientResponseChan // Initial success message
+	log.Printf("Initial succ recieved - %v", succ)
 	ret := "Empty Response"
-	for numberOfValidResponses <= 0 {
-		pbftClr := <-clientResponseChan
-		log.Printf("Recieved from %v", pbftClr.ret.Node)
-		ret = fmt.Sprintf("%v", pbftClr.ret)
+	for numberOfValidResponses <= 2 {
+		// pbftClr := <-clientResponseChan
+		pbftClr := <-pbft.ClientRequestChan // This should be it
+		log.Printf("Recieved from %v", pbftClr.Arg.ClientID)
+		ret = fmt.Sprintf("%v", pbftClr.Arg.NodeResult)
 		numberOfValidResponses += 1
 		// Check something here and increment
+		res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
+		responseBack := pb.ClientResponse{ViewId: 0, Timestamp: time.Now().UnixNano(), ClientID: "TheOneAndOnly", Node: "TheOneAndOnly", NodeResult: &res}
+		pbftClr.Response <- responseBack
 	}
-	return ret
+	return ret + " " + string(numberOfValidResponses)
 }
 
 type KvStoreClient struct {
@@ -112,6 +121,7 @@ func main() {
 	store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
 	kvc := KvStoreClient{Store: make(map[string]string)}
 	clientResponseChan := make(chan ClientResponse)
+	// pbftMsgAcceptedChan := make(chan PbftMsgAccepted)
 
 	// Is this really? Am I really using KVStore as grpc??
 	pb.RegisterKvStoreServer(s, &store)
@@ -139,7 +149,7 @@ func main() {
 
 		log.Printf("waitForSufficientResponses")
 		// waitForSufficientResponses should be sychronous
-		stringToDisplay := waitForSufficientResponses(primary, &kvc, primaryConn, clientResponseChan, command, key, value)
+		stringToDisplay := waitForSufficientResponses(primary, &kvc, primaryConn, clientResponseChan, command, key, value, pbft)
 		welcome.ReturnValue = stringToDisplay
 		log.Printf("Should be committed - return to browser")
 
