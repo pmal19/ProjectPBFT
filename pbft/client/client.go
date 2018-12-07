@@ -69,7 +69,7 @@ func main() {
 	var pbftPort int
 	var primary string
 
-	flag.IntVar(&pbftPort, "pbft", 3002, "Port on which client should listen to PBFT responses")
+	flag.IntVar(&pbftPort, "pbft", 3005, "Port on which client should listen to PBFT responses")
 	flag.StringVar(&primary, "primary", "127.0.0.1:3001", "Pbft Primary")
 	flag.Parse()
 
@@ -94,7 +94,12 @@ func main() {
 	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput)}
 	go util.RunPbftServer(&pbft, pbftPort)
 
-	primaryConn, err := util.ConnectToPeer(primary)
+	log.Printf("primary address - %v", primary)
+	primaryConn, e := util.ConnectToPeer(primary)
+	if e != nil {
+		log.Fatal("Failed to connect to primary's GRPC - %v", e)
+	}
+	log.Printf("Connected to primary : primaryConn - %v", primaryConn)
 	// for _, peer := range primaries {
 	// 	primaryConn, err = util.ConnectToPeer(peer)
 	// 	if err != nil {

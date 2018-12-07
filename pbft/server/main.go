@@ -30,7 +30,7 @@ func main() {
 	flag.IntVar(&clientPort, "port", 3000, "Port on which server should listen to client requests")
 	flag.IntVar(&pbftPort, "pbft", 3001, "Port on which server should listen to PBFT requests")
 	flag.Var(&peers, "peer", "A peer for this process")
-	flag.StringVar(&client, "client", "127.0.0.1:3002", "Pbft client")
+	flag.StringVar(&client, "client", "127.0.0.1:3005", "Pbft client")
 	flag.Parse()
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
