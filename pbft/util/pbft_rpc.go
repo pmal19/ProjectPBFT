@@ -43,7 +43,7 @@ type Pbft struct {
 }
 
 func (r *Pbft) ClientRequestPBFT(ctx context.Context, arg *pb.ClientRequest) (*pb.ClientResponse, error) {
-	log.Printf("Inside ClientRequestPBFT arg %v ", arg)
+	// log.Printf("Inside ClientRequestPBFT arg %v ", arg)
 	c := make(chan pb.ClientResponse)
 	r.ClientRequestChan <- ClientRequestInput{Arg: arg, Response: c}
 	result := <-c

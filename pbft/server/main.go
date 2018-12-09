@@ -25,16 +25,18 @@ func main() {
 	var clientPort int
 	var pbftPort int
 	var client string
+	var isByzantine bool
 
 	flag.Int64Var(&seed, "seed", -1, "Seed for random number generator, values less than 0 result in use of time")
 	flag.IntVar(&clientPort, "port", 3000, "Port on which server should listen to client requests")
 	flag.IntVar(&pbftPort, "pbft", 3001, "Port on which server should listen to PBFT requests")
 	flag.Var(&peers, "peer", "A peer for this process")
 	flag.StringVar(&client, "client", "127.0.0.1:3005", "Pbft client")
+	flag.BoolVar(&isByzantine, "byzantine", false, "Is a byzantine node?")
 	flag.Parse()
 
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-
+	log.Printf("Is Byzantine - %v", isByzantine)
 	// Initialize the random number generator
 	if seed < 0 {
 		r = rand.New(rand.NewSource(time.Now().UnixNano()))

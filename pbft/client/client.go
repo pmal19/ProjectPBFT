@@ -33,6 +33,12 @@ type ClientResponse struct {
 // 	peer string
 // }
 
+func convertKeyValueToString(kv pb.KeyValue) string {
+	key := kv.Key
+	val := kv.Value
+	return key + " = " + val
+}
+
 // call util.ClientRequestPBFT
 // do grpc call to primary - succ or redirect
 // while loop till f+1 correct responses from all nodes through some
@@ -51,17 +57,21 @@ func waitForSufficientResponses(primary string, kvc *KvStoreClient, primaryConn 
 	log.Printf("waiting for " + command + ":" + key + ":" + value + " - commit from nodes")
 	numberOfValidResponses := 0
 	succ := <-clientResponseChan // Initial success message
-	log.Printf("Initial succ recieved - %v", succ)
+	log.Printf("Initial succ recieved - %v sequenceID - %v", succ, succ.ret.SequenceID)
 	ret := "Empty Response"
-	for numberOfValidResponses <= 2 {
+	for numberOfValidResponses < 2 {
 		// pbftClr := <-clientResponseChan
 		pbftClr := <-pbft.ClientRequestChan // This should be it
-		log.Printf("Recieved from %v", pbftClr.Arg.ClientID)
-		ret = fmt.Sprintf("%v", pbftClr.Arg.NodeResult)
-		numberOfValidResponses += 1
+		if pbftClr.Arg.SequenceID == succ.ret.SequenceID {
+			// Check if the request is for this particular seqId
+			log.Printf("Recieved from %v", pbftClr.Arg.ClientID)
+			ret = fmt.Sprintf("%v", pbftClr.Arg.NodeResult)
+			// ret = convertKeyValueToString(pbftClr.Arg.NodeResult)
+			numberOfValidResponses += 1
+		}
 		// Check something here and increment
 		res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
-		responseBack := pb.ClientResponse{ViewId: 0, Timestamp: time.Now().UnixNano(), ClientID: "TheOneAndOnly", Node: "TheOneAndOnly", NodeResult: &res}
+		responseBack := pb.ClientResponse{ViewId: 0, Timestamp: time.Now().UnixNano(), ClientID: "TheOneAndOnly", Node: "TheOneAndOnly", NodeResult: &res, SequenceID: pbftClr.Arg.SequenceID}
 		pbftClr.Response <- responseBack
 	}
 	return ret + " " + string(numberOfValidResponses)
@@ -140,19 +150,21 @@ func main() {
 		if name := r.FormValue("name"); name != "" {
 			welcome.Name = name
 		}
+		log.Printf("Browser request - %v", r)
 		command := r.FormValue("req")
 		key := r.FormValue("key")
 		value := r.FormValue("value")
 
-		// callCommand should be async
-		go callCommand(primary, &kvc, primaryConn, clientResponseChan, command, key, value)
+		if command != "" && key != "" {
+			// callCommand should be async
+			go callCommand(primary, &kvc, primaryConn, clientResponseChan, command, key, value)
 
-		log.Printf("waitForSufficientResponses")
-		// waitForSufficientResponses should be sychronous
-		stringToDisplay := waitForSufficientResponses(primary, &kvc, primaryConn, clientResponseChan, command, key, value, pbft)
-		welcome.ReturnValue = stringToDisplay
-		log.Printf("Should be committed - return to browser")
-
+			log.Printf("waitForSufficientResponses")
+			// waitForSufficientResponses should be sychronous
+			stringToDisplay := waitForSufficientResponses(primary, &kvc, primaryConn, clientResponseChan, command, key, value, pbft)
+			welcome.ReturnValue = stringToDisplay
+			log.Printf("Should be committed - return to browser")
+		}
 		if err := templates.ExecuteTemplate(w, "welcome-template.html", welcome); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}

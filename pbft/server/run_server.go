@@ -31,7 +31,7 @@ func printPrepareMsg(pm pb.PrepareMsg, view int64, seq int64) {
 }
 
 func printCommitMsg(cm pb.CommitMsg, view int64, seq int64) {
-	log.Printf("Received prepare request in view %v and seq %v", view, seq)
+	log.Printf("Received commit request in view %v and seq %v", view, seq)
 	log.Printf("CommitMsg - viewId : %v || sequenceID : %v || digest : %v || node : %v", cm.ViewId, cm.SequenceID, cm.Digest, cm.Node)
 }
 
@@ -59,7 +59,7 @@ func verifyPrePrepare(prePrepareMsg *pb.PrePrepareMsg, viewId int64, sequenceID 
 		return false
 	}
 	if sequenceID != -1 {
-		if sequenceID >= prePrepareMsg.SequenceID {
+		if sequenceID > prePrepareMsg.SequenceID {
 			return false
 		}
 	}
@@ -78,7 +78,7 @@ func verifyPrepare(prepareMsg *pb.PrepareMsg, viewId int64, sequenceID int64, lo
 		return false
 	}
 	if sequenceID != -1 {
-		if sequenceID >= prepareMsg.SequenceID {
+		if sequenceID > prepareMsg.SequenceID {
 			return false
 		}
 	}
@@ -94,7 +94,7 @@ func verifyCommit(commitMsg *pb.CommitMsg, viewId int64, sequenceID int64, logEn
 		return false
 	}
 	if sequenceID != -1 {
-		if sequenceID >= commitMsg.SequenceID {
+		if sequenceID > commitMsg.SequenceID {
 			return false
 		}
 	}
@@ -149,7 +149,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 	seqId := int64(-1)
 	var logEntries []logEntry
 	// maxLogSize := 10000000
-	maxMsgLogsSize := 10
+	maxMsgLogsSize := 0
 	// logEntries := make(map[int64]logEntry)
 
 	type ClientResponse struct {
@@ -222,12 +222,13 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			// logEntries[newEntry.sequenceID] = newEntry
 			logEntries = append(logEntries, newEntry)
 
-			responseBack := pb.ClientResponse{ViewId: currentView, Timestamp: timestamp, ClientID: clientId, Node: id, NodeResult: &res}
+			responseBack := pb.ClientResponse{ViewId: currentView, Timestamp: timestamp, ClientID: clientId, Node: id, NodeResult: &res, SequenceID: seqId}
 			log.Printf("Sending back responseBack - %v", responseBack)
 			printMyStoreAndLog(logEntries, kvs)
 			pbftClr.Response <- responseBack
 		case pbftPrePrep := <-pbft.PrePrepareMsgChan:
 			prePrepareMsg := pbftPrePrep.Arg
+			seqId = prePrepareMsg.SequenceID
 			log.Printf("Received PrePrepareMsgChan %v from primary %v", pbftPrePrep.Arg, pbftPrePrep.Arg.Node)
 			printPrePrepareMsg(*prePrepareMsg, currentView, seqId)
 
@@ -235,12 +236,6 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			if verified {
 				digest := prePrepareMsg.Digest
 				prepareMsg := pb.PrepareMsg{ViewId: prePrepareMsg.ViewId, SequenceID: prePrepareMsg.SequenceID, Digest: digest, Node: id}
-				for p, c := range peerClients {
-					go func(c pb.PbftClient, p string) {
-						ret, err := c.PreparePBFT(context.Background(), &prepareMsg)
-						pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
-					}(c, p)
-				}
 
 				newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
 
@@ -249,6 +244,14 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				newEntry.pre = oldPrepares
 
 				logEntries = append(logEntries, newEntry)
+
+				for p, c := range peerClients {
+					go func(c pb.PbftClient, p string) {
+						time.Sleep(10 * time.Millisecond)
+						ret, err := c.PreparePBFT(context.Background(), &prepareMsg)
+						pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+					}(c, p)
+				}
 
 				// oldEntry, ok := logEntries[prePrepareMsg.SequenceID]
 				// if ok {
@@ -265,7 +268,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			pbftPrePrep.Response <- responseBack
 		case pbftPre := <-pbft.PrepareMsgChan:
 			prepareMsg := pbftPre.Arg
-			log.Printf("Received PrePrepareMsgChan %v", prepareMsg)
+			log.Printf("Received PrepareMsgChan %v", prepareMsg)
 			printPrepareMsg(*prepareMsg, currentView, seqId)
 
 			verified := verifyPrepare(prepareMsg, currentView, seqId, logEntries)
@@ -279,10 +282,10 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				oldEntry.prepared = prepared
 				logEntries[prepareMsg.SequenceID] = oldEntry
 				if prepared {
-
 					commitMsg := pb.CommitMsg{ViewId: prepareMsg.ViewId, SequenceID: prepareMsg.SequenceID, Digest: prepareMsg.Digest, Node: id}
 					for p, c := range peerClients {
 						go func(c pb.PbftClient, p string) {
+							time.Sleep(100 * time.Millisecond)
 							ret, err := c.CommitPBFT(context.Background(), &commitMsg)
 							pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
 						}(c, p)
@@ -334,6 +337,8 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 					e := pb.Entry{Term: int64(12), Index: int64(34)}
 					log.Printf("res %v e %v", res, e)
 					clr.NodeResult = &res
+					clr.ClientID = id
+					clr.SequenceID = commitMsg.SequenceID
 					go func(c pb.PbftClient) {
 						ret, err := c.ClientRequestPBFT(context.Background(), clr)
 						clientResponseChan <- ClientResponse{ret: ret, err: err, node: id}
