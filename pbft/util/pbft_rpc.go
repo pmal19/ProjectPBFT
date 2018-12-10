@@ -109,6 +109,40 @@ func StopTimer(timer *time.Timer) {
 	}
 }
 
+type SecondsTimer struct {
+	Timer *time.Timer
+	End   time.Time
+}
+
+func NewSecondsTimer(t time.Duration) *SecondsTimer {
+	return &SecondsTimer{time.NewTimer(t), time.Now().Add(t)}
+}
+
+func (s *SecondsTimer) Reset(t time.Duration) {
+	stopped := s.Timer.Stop()
+	if !stopped {
+		for len(s.Timer.C) > 0 {
+			<-s.Timer.C
+		}
+	}
+	s.Timer.Reset(t)
+	s.End = time.Now().Add(t)
+}
+
+func (s *SecondsTimer) Stop() {
+	stopped := s.Timer.Stop()
+	if !stopped {
+		for len(s.Timer.C) > 0 {
+			<-s.Timer.C
+		}
+	}
+	s.Timer.Stop()
+}
+
+func (s *SecondsTimer) TimeRemaining() time.Duration {
+	return s.End.Sub(time.Now())
+}
+
 func RunPbftServer(r *Pbft, port int) {
 	portString := fmt.Sprintf(":%d", port)
 	c, err := net.Listen("tcp", portString)

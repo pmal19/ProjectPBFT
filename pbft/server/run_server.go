@@ -117,7 +117,8 @@ func isCommittedLocal(entry logEntry) bool {
 	return len(entry.com) >= 3
 }
 
-func printMyStoreAndLog(logEntries []logEntry, kvs *KvStoreServer) {
+func printMyStoreAndLog(logEntries []logEntry, kvs *KvStoreServer, currentView int64) {
+	log.Printf("currentView - %v", currentView)
 	log.Printf("My KVStore - %v", kvs.Store)
 	log.Printf("My Logs - %v", logEntries)
 }
@@ -139,6 +140,30 @@ func RandStringRunes(n int) string {
 func tamper(digest string) string {
 	return RandStringRunes(len(digest))
 }
+
+type ClientResponse struct {
+	ret  *pb.ClientResponse
+	err  error
+	node string
+}
+
+type PbftMsgAccepted struct {
+	ret  *pb.PbftMsgAccepted
+	err  error
+	peer string
+}
+
+// func startViewChange(newView int64, peerClients map[string]pb.PbftClient, seqId int64, node string) {
+// 	log.Printf("Starting View Change")
+// 	viewChange := pb.ViewChangeMsg{Type: "view-change", NewView: newView, LastSequenceID: seqId, Node: node}
+// 	for p, c := range peerClients {
+// 		go func(c pb.PbftClient, p string) {
+// 			ret, err := c.ViewChangePBFT(context.Background(), &viewChange)
+// 			pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+// 		}(c, p)
+// 	}
+// 	printMyStoreAndLog(logEntries, kvs)
+// }
 
 func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, port int, client string, kvs *KvStoreServer, isByzantine bool) {
 	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput), ViewChangeMsgChan: make(chan util.ViewChangeMsgInput)}
@@ -163,217 +188,270 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 		log.Printf("Connected to %v", peer)
 	}
 
-	currentView := int64(1)
+	clientResponseChan := make(chan ClientResponse)
+	pbftMsgAcceptedChan := make(chan PbftMsgAccepted)
+
+	currentView := int64(0)
 	seqId := int64(-1)
 	var logEntries []logEntry
 	// maxLogSize := 10000000
 	maxMsgLogsSize := 0
 	// logEntries := make(map[int64]logEntry)
-
-	type ClientResponse struct {
-		ret  *pb.ClientResponse
-		err  error
-		node string
-	}
-
-	type PbftMsgAccepted struct {
-		ret  *pb.PbftMsgAccepted
-		err  error
-		peer string
-	}
-	clientResponseChan := make(chan ClientResponse)
-	pbftMsgAcceptedChan := make(chan PbftMsgAccepted)
-
+	// currentPrimary := int64(0)
+	myId := int64(port) % 3001
+	// timeInterval := 4000 * time.Millisecond
 	// Create a timer and start running it
 	timer := time.NewTimer(util.RandomDuration(r))
+	viewChangeTimer := util.NewSecondsTimer(util.RandomDuration(r))
+	// util.StopTimer(timer)
+	viewChangeTimer.Stop()
 
-	// transitionPhase := false
+	transitionPhase := false
+	numberOfVotes := 0
 
 	for {
 		select {
 		case <-timer.C:
-			log.Printf("Timeout - initiate view change")
-			// transitionPhase = true
-			// newView :=
-			// viewChange := pb.ViewChangeMsg{Type: "view-change", NewView}
-			// for p, c := range peerClients {
-			// 	// go func(c pb.PbftClient, p string) {
-			// 	// 	ret, err := c.RequestVote(context.Background(), &pb.RequestVoteArgs{Term: 1, CandidateID: id})
-			// 	// 	voteResponseChan <- VoteResponse{ret: ret, err: err, peer: p}
-			// 	// }(c, p)
-			// }
-			printMyStoreAndLog(logEntries, kvs)
-			util.RestartTimer(timer, r) // ??
+			printMyStoreAndLog(logEntries, kvs, currentView)
+			util.RestartTimer(timer, r)
+		case <-viewChangeTimer.Timer.C:
+			newView := (currentView + 1) % 4
+			log.Printf("Timeout - initiate view change. New view - %v", newView)
+			transitionPhase = true
+			// startViewChange(newView, peerClients, seqId, id, pbftMsgAcceptedChan, logEntries, kvs)
+			viewChange := pb.ViewChangeMsg{Type: "view-change", NewView: newView, LastSequenceID: seqId, Node: id}
+			for p, c := range peerClients {
+				go func(c pb.PbftClient, p string) {
+					ret, err := c.ViewChangePBFT(context.Background(), &viewChange)
+					pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+				}(c, p)
+			}
+			printMyStoreAndLog(logEntries, kvs, currentView)
 
 		case pbftVc := <-pbft.ViewChangeMsgChan:
-			log.Printf("Received view change request - %v", pbftVc)
 			// Got request for vote change
-
+			newView := pbftVc.Arg.NewView
+			if pbftVc.Arg.Type == "new-view" {
+				log.Printf("Switching to new view - %v || %v", newView, pbftVc)
+				currentView = newView
+				transitionPhase = false
+				numberOfVotes = 0
+			} else {
+				if newView == myId {
+					log.Printf("Received vote from %v", pbftVc.Arg.Node)
+					numberOfVotes += 1
+				} else {
+					log.Printf("Received view change request - %v", pbftVc)
+				}
+			}
+			// New Primary
+			if numberOfVotes >= 2 {
+				log.Printf("Switching to new view - %v and taking on as primary", newView)
+				viewChange := pb.ViewChangeMsg{Type: "new-view", NewView: newView, LastSequenceID: seqId, Node: id}
+				for p, c := range peerClients {
+					go func(c pb.PbftClient, p string) {
+						ret, err := c.ViewChangePBFT(context.Background(), &viewChange)
+						pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+					}(c, p)
+				}
+				transitionPhase = false
+				currentView = newView
+				numberOfVotes = 0
+			}
 		// case op := <-s.C:
 		// 	s.HandleCommand(op)
 		case pbftClr := <-pbft.ClientRequestChan:
 			clientReq := pbftClr.Arg
-			log.Printf("Received ClientRequestChan %v", clientReq.ClientID)
-			printClientRequest(*clientReq, currentView, seqId)
-			// Do something here as primary to return initially to client
-			seqId += 1
-			clientId := clientReq.ClientID
-			timestamp := clientReq.Timestamp
-			res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
-
-			digest := util.Digest(clientReq)
-			if isByzantine {
-				digest = tamper(digest)
-			}
-			prePrepareMsg := pb.PrePrepareMsg{ViewId: currentView, SequenceID: seqId, Digest: digest, Request: clientReq, Node: id}
-			for p, c := range peerClients {
-				go func(c pb.PbftClient, p string) {
-					ret, err := c.PrePreparePBFT(context.Background(), &prePrepareMsg)
-					pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
-				}(c, p)
-			}
-
-			newEntry := logEntry{viewId: currentView, sequenceID: seqId, clientReq: clientReq, prePrep: &prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
-			// logEntries[newEntry.sequenceID] = newEntry
-			logEntries = append(logEntries, newEntry)
-
-			responseBack := pb.ClientResponse{ViewId: currentView, Timestamp: timestamp, ClientID: clientId, Node: id, NodeResult: &res, SequenceID: seqId}
-			log.Printf("Sending back responseBack - %v", responseBack)
-			printMyStoreAndLog(logEntries, kvs)
-			pbftClr.Response <- responseBack
-		case pbftPrePrep := <-pbft.PrePrepareMsgChan:
-			prePrepareMsg := pbftPrePrep.Arg
-			seqId = prePrepareMsg.SequenceID
-			log.Printf("Received PrePrepareMsgChan %v from primary %v", pbftPrePrep.Arg, pbftPrePrep.Arg.Node)
-			printPrePrepareMsg(*prePrepareMsg, currentView, seqId)
-
-			verified := verifyPrePrepare(prePrepareMsg, currentView, seqId, logEntries)
-			if verified {
-				util.RestartTimer(timer, r)
-				digest := prePrepareMsg.Digest
-				if isByzantine {
-					digest = tamper(digest)
-				}
-				prepareMsg := pb.PrepareMsg{ViewId: prePrepareMsg.ViewId, SequenceID: prePrepareMsg.SequenceID, Digest: digest, Node: id}
-
-				newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
-
-				oldPrepares := newEntry.pre
-				oldPrepares = append(oldPrepares, &prepareMsg)
-				newEntry.pre = oldPrepares
-
-				logEntries = append(logEntries, newEntry)
-
-				for p, c := range peerClients {
-					go func(c pb.PbftClient, p string) {
-						time.Sleep(10 * time.Millisecond)
-						ret, err := c.PreparePBFT(context.Background(), &prepareMsg)
-						pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
-					}(c, p)
-				}
-
-				// oldEntry, ok := logEntries[prePrepareMsg.SequenceID]
-				// if ok {
-				// 	oldEntry.prePrep = prePrepareMsg
-				// 	logEntries[prePrepareMsg.SequenceID] = oldEntry
-				// } else {
-				// 	newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg}
-				// 	// logEntries[newEntry.sequenceID] = newEntry
-				// 	logEntries = append(logEntries, newEntry)
-				// }
-			}
-			responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "pre-prepare", Node: id}
-			printMyStoreAndLog(logEntries, kvs)
-			pbftPrePrep.Response <- responseBack
-		case pbftPre := <-pbft.PrepareMsgChan:
-			prepareMsg := pbftPre.Arg
-			log.Printf("Received PrepareMsgChan %v", prepareMsg)
-			printPrepareMsg(*prepareMsg, currentView, seqId)
-
-			verified := verifyPrepare(prepareMsg, currentView, seqId, logEntries)
-			if verified {
-				oldEntry := logEntries[prepareMsg.SequenceID]
-				oldPrepares := oldEntry.pre
-				oldPrepares = append(oldPrepares, prepareMsg)
-				oldEntry.pre = oldPrepares
-				logEntries[prepareMsg.SequenceID] = oldEntry
-				prepared := isPrepared(oldEntry)
-				oldEntry.prepared = prepared
-				logEntries[prepareMsg.SequenceID] = oldEntry
-				if prepared {
-					digest := prepareMsg.Digest
+			if !transitionPhase {
+				iAmLeader := currentView == myId
+				if iAmLeader {
+					log.Printf("Received ClientRequestChan %v", clientReq.ClientID)
+					printClientRequest(*clientReq, currentView, seqId)
+					// Do something here as primary to return initially to client
+					seqId += 1
+					clientId := clientReq.ClientID
+					timestamp := clientReq.Timestamp
+					res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
+					digest := util.Digest(clientReq)
 					if isByzantine {
 						digest = tamper(digest)
 					}
-					commitMsg := pb.CommitMsg{ViewId: prepareMsg.ViewId, SequenceID: prepareMsg.SequenceID, Digest: prepareMsg.Digest, Node: id}
+					prePrepareMsg := pb.PrePrepareMsg{ViewId: currentView, SequenceID: seqId, Digest: digest, Request: clientReq, Node: id}
 					for p, c := range peerClients {
 						go func(c pb.PbftClient, p string) {
-							time.Sleep(100 * time.Millisecond)
-							ret, err := c.CommitPBFT(context.Background(), &commitMsg)
+							ret, err := c.PrePreparePBFT(context.Background(), &prePrepareMsg)
 							pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
 						}(c, p)
 					}
-					oldCommits := oldEntry.com
-					oldCommits = append(oldCommits, &commitMsg)
-					oldEntry.com = oldCommits
-					logEntries[prepareMsg.SequenceID] = oldEntry
+					newEntry := logEntry{viewId: currentView, sequenceID: seqId, clientReq: clientReq, prePrep: &prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
+					// logEntries[newEntry.sequenceID] = newEntry
+					logEntries = append(logEntries, newEntry)
+					responseBack := pb.ClientResponse{ViewId: currentView, Timestamp: timestamp, ClientID: clientId, Node: id, NodeResult: &res, SequenceID: seqId}
+					log.Printf("Sending back responseBack - %v", responseBack)
+					printMyStoreAndLog(logEntries, kvs, currentView)
+					pbftClr.Response <- responseBack
+				} else {
+					// Need to send some kind of redirect message
+					log.Printf("Redirect message View Change")
 				}
+			} else {
+				log.Printf("Received ClientRequestChan %v", clientReq.ClientID)
+				log.Printf("But.....Requested View Change")
 			}
-			responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "prepare", Node: id}
-			printMyStoreAndLog(logEntries, kvs)
-			pbftPre.Response <- responseBack
-		case pbftCom := <-pbft.CommitMsgChan:
-			commitMsg := pbftCom.Arg
-			log.Printf("Received CommitMsgChan %v", pbftCom.Arg.Node)
-			printCommitMsg(*commitMsg, currentView, seqId)
-			verified := verifyCommit(commitMsg, currentView, seqId, logEntries)
-			if verified {
-				oldEntry := logEntries[commitMsg.SequenceID]
-				oldCommits := oldEntry.com
-				oldCommits = append(oldCommits, commitMsg)
-				oldEntry.com = oldCommits
-				logEntries[commitMsg.SequenceID] = oldEntry
-				committed := isCommitted(oldEntry)
-				oldEntry.committed = committed
-				committedLocal := isCommittedLocal(oldEntry)
-				oldEntry.committedLocal = committedLocal
-				logEntries[commitMsg.SequenceID] = oldEntry
-				if committedLocal {
-					util.StopTimer(timer)
-					// Execute and finally send back to client to aggregate
-					clr := oldEntry.clientReq
-					op := strings.Split(clr.Operation, ":")
-					operation := op[0]
-					key := op[1]
-					val := op[2]
-					res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
-					if operation == "set" {
-						kvs.Store[key] = val
-						res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
-					} else if operation == "get" {
-						val = kvs.Store[key]
-						res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
+		case pbftPrePrep := <-pbft.PrePrepareMsgChan:
+			prePrepareMsg := pbftPrePrep.Arg
+			seqId = prePrepareMsg.SequenceID
+			if !transitionPhase {
+				if viewChangeTimer.TimeRemaining() < 100*time.Millisecond {
+					dur := util.RandomDuration(r)
+					log.Printf("Resetting timer for duration - %v", dur)
+					viewChangeTimer.Reset(dur)
+				}
+				log.Printf("Received PrePrepareMsgChan %v from primary %v", pbftPrePrep.Arg, pbftPrePrep.Arg.Node)
+				printPrePrepareMsg(*prePrepareMsg, currentView, seqId)
+				verified := verifyPrePrepare(prePrepareMsg, currentView, seqId, logEntries)
+				if verified {
+					digest := prePrepareMsg.Digest
+					if isByzantine {
+						digest = tamper(digest)
 					}
-					clr.NodeResult = &res
-					clr.ClientID = id
-					clr.SequenceID = commitMsg.SequenceID
-					go func(c pb.PbftClient) {
-						ret, err := c.ClientRequestPBFT(context.Background(), clr)
-						clientResponseChan <- ClientResponse{ret: ret, err: err, node: id}
-					}(clientConn)
+					prepareMsg := pb.PrepareMsg{ViewId: prePrepareMsg.ViewId, SequenceID: prePrepareMsg.SequenceID, Digest: digest, Node: id}
+					newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
+					oldPrepares := newEntry.pre
+					oldPrepares = append(oldPrepares, &prepareMsg)
+					newEntry.pre = oldPrepares
+					logEntries = append(logEntries, newEntry)
+					for p, c := range peerClients {
+						go func(c pb.PbftClient, p string) {
+							time.Sleep(10 * time.Millisecond)
+							ret, err := c.PreparePBFT(context.Background(), &prepareMsg)
+							pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+						}(c, p)
+					}
+					// oldEntry, ok := logEntries[prePrepareMsg.SequenceID]
+					// if ok {
+					// 	oldEntry.prePrep = prePrepareMsg
+					// 	logEntries[prePrepareMsg.SequenceID] = oldEntry
+					// } else {
+					// 	newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg}
+					// 	// logEntries[newEntry.sequenceID] = newEntry
+					// 	logEntries = append(logEntries, newEntry)
+					// }
 				}
+				responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "pre-prepare", Node: id}
+				printMyStoreAndLog(logEntries, kvs, currentView)
+				pbftPrePrep.Response <- responseBack
+			} else {
+				log.Printf("Received PrePrepareMsgChan %v from primary %v", pbftPrePrep.Arg, pbftPrePrep.Arg.Node)
+				log.Printf("But.....Requested View Change")
 			}
-			responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "commit", Node: id}
-			printMyStoreAndLog(logEntries, kvs)
-			pbftCom.Response <- responseBack
+		case pbftPre := <-pbft.PrepareMsgChan:
+			prepareMsg := pbftPre.Arg
+			if !transitionPhase {
+				log.Printf("Received PrepareMsgChan %v", prepareMsg)
+				printPrepareMsg(*prepareMsg, currentView, seqId)
+				verified := verifyPrepare(prepareMsg, currentView, seqId, logEntries)
+				if verified {
+					if viewChangeTimer.TimeRemaining() < 100*time.Millisecond {
+						dur := util.RandomDuration(r)
+						log.Printf("Resetting timer for duration - %v", dur)
+						viewChangeTimer.Reset(dur)
+					}
+					oldEntry := logEntries[prepareMsg.SequenceID]
+					oldPrepares := oldEntry.pre
+					oldPrepares = append(oldPrepares, prepareMsg)
+					oldEntry.pre = oldPrepares
+					logEntries[prepareMsg.SequenceID] = oldEntry
+					prepared := isPrepared(oldEntry)
+					oldEntry.prepared = prepared
+					logEntries[prepareMsg.SequenceID] = oldEntry
+					if prepared {
+						digest := prepareMsg.Digest
+						if isByzantine {
+							digest = tamper(digest)
+						}
+						commitMsg := pb.CommitMsg{ViewId: prepareMsg.ViewId, SequenceID: prepareMsg.SequenceID, Digest: prepareMsg.Digest, Node: id}
+						for p, c := range peerClients {
+							go func(c pb.PbftClient, p string) {
+								time.Sleep(100 * time.Millisecond)
+								ret, err := c.CommitPBFT(context.Background(), &commitMsg)
+								pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
+							}(c, p)
+						}
+						oldCommits := oldEntry.com
+						oldCommits = append(oldCommits, &commitMsg)
+						oldEntry.com = oldCommits
+						logEntries[prepareMsg.SequenceID] = oldEntry
+					}
+				}
+				responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "prepare", Node: id}
+				printMyStoreAndLog(logEntries, kvs, currentView)
+				pbftPre.Response <- responseBack
+			} else {
+				log.Printf("Received PrepareMsgChan %v", prepareMsg)
+				log.Printf("But.....Requested View Change")
+			}
+		case pbftCom := <-pbft.CommitMsgChan:
+			if !transitionPhase {
+				commitMsg := pbftCom.Arg
+				log.Printf("Received CommitMsgChan %v", pbftCom.Arg.Node)
+				printCommitMsg(*commitMsg, currentView, seqId)
+				verified := verifyCommit(commitMsg, currentView, seqId, logEntries)
+				if verified {
+					if viewChangeTimer.TimeRemaining() < 100*time.Millisecond {
+						dur := util.RandomDuration(r)
+						log.Printf("Resetting timer for duration - %v", dur)
+						viewChangeTimer.Reset(dur)
+					}
+					oldEntry := logEntries[commitMsg.SequenceID]
+					oldCommits := oldEntry.com
+					oldCommits = append(oldCommits, commitMsg)
+					oldEntry.com = oldCommits
+					logEntries[commitMsg.SequenceID] = oldEntry
+					committed := isCommitted(oldEntry)
+					oldEntry.committed = committed
+					committedLocal := isCommittedLocal(oldEntry)
+					oldEntry.committedLocal = committedLocal
+					logEntries[commitMsg.SequenceID] = oldEntry
+					if committedLocal {
+						// util.StopTimer(timer)
+						viewChangeTimer.Stop()
+						// Execute and finally send back to client to aggregate
+						clr := oldEntry.clientReq
+						op := strings.Split(clr.Operation, ":")
+						operation := op[0]
+						key := op[1]
+						val := op[2]
+						res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
+						if operation == "set" {
+							kvs.Store[key] = val
+							res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
+						} else if operation == "get" {
+							val = kvs.Store[key]
+							res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
+						}
+						clr.NodeResult = &res
+						clr.ClientID = id
+						clr.SequenceID = commitMsg.SequenceID
+						go func(c pb.PbftClient) {
+							ret, err := c.ClientRequestPBFT(context.Background(), clr)
+							clientResponseChan <- ClientResponse{ret: ret, err: err, node: id}
+						}(clientConn)
+					}
+				}
+				responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "commit", Node: id}
+				printMyStoreAndLog(logEntries, kvs, currentView)
+				pbftCom.Response <- responseBack
+			} else {
+				log.Printf("Received CommitMsgChan %v", pbftCom.Arg.Node)
+				log.Printf("But.....Requested View Change")
+			}
 		case clr := <-clientResponseChan:
 			log.Printf("Client Response Received for committedLocal and executed state %v", clr)
-		// 	// log.Printf("Client Request Received %v", clr.peer)
+			// log.Printf("Client Request Received %v", clr.peer)
 		case pbftMsg := <-pbftMsgAcceptedChan:
-			// log.Printf("Some PBFT Msg Acceptance Received")
 			log.Printf("PBFT Msg Acceptance Received - %v", pbftMsg)
-
-			// log.Printf("%v PBFT Msg Acceptance Received from %v", pbftMsg.ret.TypeOfAccepted, pbftMsg.ret.Node)
+			// log.Printf("Some PBFT Msg Acceptance Received")
 			// printPbftMsgAccepted(*pbftMsg.ret, currentView, seqId)
 		}
 	}
