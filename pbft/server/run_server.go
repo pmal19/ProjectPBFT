@@ -122,8 +122,26 @@ func printMyStoreAndLog(logEntries []logEntry, kvs *KvStoreServer) {
 	log.Printf("My Logs - %v", logEntries)
 }
 
-func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, port int, client string, kvs *KvStoreServer) {
-	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput)}
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
+
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func RandStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+	}
+	return string(b)
+}
+
+func tamper(digest string) string {
+	return RandStringRunes(len(digest))
+}
+
+func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, port int, client string, kvs *KvStoreServer, isByzantine bool) {
+	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput), ViewChangeMsgChan: make(chan util.ViewChangeMsgInput)}
 	go util.RunPbftServer(&pbft, port)
 	peerClients := make(map[string]pb.PbftClient)
 
@@ -169,10 +187,15 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 	// Create a timer and start running it
 	timer := time.NewTimer(util.RandomDuration(r))
 
+	// transitionPhase := false
+
 	for {
 		select {
 		case <-timer.C:
-			// log.Printf("Timeout")
+			log.Printf("Timeout - initiate view change")
+			// transitionPhase = true
+			// newView :=
+			// viewChange := pb.ViewChangeMsg{Type: "view-change", NewView}
 			// for p, c := range peerClients {
 			// 	// go func(c pb.PbftClient, p string) {
 			// 	// 	ret, err := c.RequestVote(context.Background(), &pb.RequestVoteArgs{Term: 1, CandidateID: id})
@@ -180,12 +203,14 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			// 	// }(c, p)
 			// }
 			printMyStoreAndLog(logEntries, kvs)
-			// log.Printf("My KVStore - %v", kvs.Store)
-			// log.Printf("My Logs - %v", logEntries)
-			util.RestartTimer(timer, r)
+			util.RestartTimer(timer, r) // ??
+
+		case pbftVc := <-pbft.ViewChangeMsgChan:
+			log.Printf("Received view change request - %v", pbftVc)
+			// Got request for vote change
+
 		// case op := <-s.C:
 		// 	s.HandleCommand(op)
-		// Should this be only in client?? pbftClr := <-pbft.ClientRequestChan
 		case pbftClr := <-pbft.ClientRequestChan:
 			clientReq := pbftClr.Arg
 			log.Printf("Received ClientRequestChan %v", clientReq.ClientID)
@@ -194,22 +219,12 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			seqId += 1
 			clientId := clientReq.ClientID
 			timestamp := clientReq.Timestamp
-			// op := strings.Split(clientReq.Operation, ":")
-			// operation := op[0]
-			// key := op[1]
-			// val := op[2]
 			res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
-			// if operation == "set" {
-			// 	kvs.Store[key] = val
-			// 	res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
-			// } else if operation == "get" {
-			// 	val = kvs.Store[key]
-			// 	res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
-			// }
-			// log.Printf("Received pbft client (%v) req for %v at %v", clientId, operation, timestamp)
 
-			// digest := "message digest pre-prepare"
 			digest := util.Digest(clientReq)
+			if isByzantine {
+				digest = tamper(digest)
+			}
 			prePrepareMsg := pb.PrePrepareMsg{ViewId: currentView, SequenceID: seqId, Digest: digest, Request: clientReq, Node: id}
 			for p, c := range peerClients {
 				go func(c pb.PbftClient, p string) {
@@ -234,7 +249,11 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 
 			verified := verifyPrePrepare(prePrepareMsg, currentView, seqId, logEntries)
 			if verified {
+				util.RestartTimer(timer, r)
 				digest := prePrepareMsg.Digest
+				if isByzantine {
+					digest = tamper(digest)
+				}
 				prepareMsg := pb.PrepareMsg{ViewId: prePrepareMsg.ViewId, SequenceID: prePrepareMsg.SequenceID, Digest: digest, Node: id}
 
 				newEntry := logEntry{viewId: prePrepareMsg.ViewId, sequenceID: prePrepareMsg.SequenceID, clientReq: prePrepareMsg.Request, prePrep: prePrepareMsg, pre: make([]*pb.PrepareMsg, maxMsgLogsSize), com: make([]*pb.CommitMsg, maxMsgLogsSize), prepared: false, committed: false, committedLocal: false}
@@ -282,6 +301,10 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				oldEntry.prepared = prepared
 				logEntries[prepareMsg.SequenceID] = oldEntry
 				if prepared {
+					digest := prepareMsg.Digest
+					if isByzantine {
+						digest = tamper(digest)
+					}
 					commitMsg := pb.CommitMsg{ViewId: prepareMsg.ViewId, SequenceID: prepareMsg.SequenceID, Digest: prepareMsg.Digest, Node: id}
 					for p, c := range peerClients {
 						go func(c pb.PbftClient, p string) {
@@ -290,15 +313,12 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 							pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
 						}(c, p)
 					}
-
 					oldCommits := oldEntry.com
 					oldCommits = append(oldCommits, &commitMsg)
 					oldEntry.com = oldCommits
 					logEntries[prepareMsg.SequenceID] = oldEntry
-
 				}
 			}
-
 			responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "prepare", Node: id}
 			printMyStoreAndLog(logEntries, kvs)
 			pbftPre.Response <- responseBack
@@ -306,7 +326,6 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			commitMsg := pbftCom.Arg
 			log.Printf("Received CommitMsgChan %v", pbftCom.Arg.Node)
 			printCommitMsg(*commitMsg, currentView, seqId)
-
 			verified := verifyCommit(commitMsg, currentView, seqId, logEntries)
 			if verified {
 				oldEntry := logEntries[commitMsg.SequenceID]
@@ -320,6 +339,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				oldEntry.committedLocal = committedLocal
 				logEntries[commitMsg.SequenceID] = oldEntry
 				if committedLocal {
+					util.StopTimer(timer)
 					// Execute and finally send back to client to aggregate
 					clr := oldEntry.clientReq
 					op := strings.Split(clr.Operation, ":")
@@ -334,8 +354,6 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 						val = kvs.Store[key]
 						res = pb.Result{Result: &pb.Result_Kv{Kv: &pb.KeyValue{Key: key, Value: val}}}
 					}
-					e := pb.Entry{Term: int64(12), Index: int64(34)}
-					log.Printf("res %v e %v", res, e)
 					clr.NodeResult = &res
 					clr.ClientID = id
 					clr.SequenceID = commitMsg.SequenceID
@@ -345,11 +363,9 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 					}(clientConn)
 				}
 			}
-
 			responseBack := pb.PbftMsgAccepted{ViewId: currentView, SequenceID: seqId, Success: verified, TypeOfAccepted: "commit", Node: id}
 			printMyStoreAndLog(logEntries, kvs)
 			pbftCom.Response <- responseBack
-		// Is this needed??
 		case clr := <-clientResponseChan:
 			log.Printf("Client Response Received for committedLocal and executed state %v", clr)
 		// 	// log.Printf("Client Request Received %v", clr.peer)

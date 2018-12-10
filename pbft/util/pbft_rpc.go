@@ -35,11 +35,17 @@ type CommitMsgInput struct {
 	Response chan pb.PbftMsgAccepted
 }
 
+type ViewChangeMsgInput struct {
+	Arg      *pb.ViewChangeMsg
+	Response chan pb.PbftMsgAccepted
+}
+
 type Pbft struct {
 	ClientRequestChan chan ClientRequestInput
 	PrePrepareMsgChan chan PrePrepareMsgInput
 	PrepareMsgChan    chan PrepareMsgInput
 	CommitMsgChan     chan CommitMsgInput
+	ViewChangeMsgChan chan ViewChangeMsgInput
 }
 
 func (r *Pbft) ClientRequestPBFT(ctx context.Context, arg *pb.ClientRequest) (*pb.ClientResponse, error) {
@@ -71,6 +77,13 @@ func (r *Pbft) CommitPBFT(ctx context.Context, arg *pb.CommitMsg) (*pb.PbftMsgAc
 	return &result, nil
 }
 
+func (r *Pbft) ViewChangePBFT(ctx context.Context, arg *pb.ViewChangeMsg) (*pb.PbftMsgAccepted, error) {
+	c := make(chan pb.PbftMsgAccepted)
+	r.ViewChangeMsgChan <- ViewChangeMsgInput{Arg: arg, Response: c}
+	result := <-c
+	return &result, nil
+}
+
 func RandomDuration(r *rand.Rand) time.Duration {
 	const DurationMax = 4000
 	const DurationMin = 1000
@@ -85,6 +98,15 @@ func RestartTimer(timer *time.Timer, r *rand.Rand) {
 		}
 	}
 	timer.Reset(RandomDuration(r))
+}
+
+func StopTimer(timer *time.Timer) {
+	stopped := timer.Stop()
+	if !stopped {
+		for len(timer.C) > 0 {
+			<-timer.C
+		}
+	}
 }
 
 func RunPbftServer(r *Pbft, port int) {

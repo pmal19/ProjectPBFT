@@ -191,9 +191,17 @@ message PbftMsgAccepted {
     string node = 5;
 }
 
+message ViewChangeMsg {
+    string type = 1;
+    int64 newView = 2;
+    int64 lastSequenceID = 3;
+    string node = 5;
+}
+
 service Pbft {
     rpc ClientRequestPBFT(ClientRequest) returns (ClientResponse) {}
     rpc PrePreparePBFT(PrePrepareMsg) returns (PbftMsgAccepted) {}
     rpc PreparePBFT(PrepareMsg) returns (PbftMsgAccepted) {}
     rpc CommitPBFT(CommitMsg) returns (PbftMsgAccepted) {}
+    rpc ViewChangePBFT(ViewChangeMsg) returns (PbftMsgAccepted) {}
 }
