@@ -58,16 +58,29 @@ func waitForSufficientResponses(primary string, primaryConn pb.PbftClient, clien
 	log.Printf("Initial succ recieved - %v sequenceID - %v", succ, succ.ret.SequenceID)
 	ret := "Empty Response"
 	for numberOfValidResponses < 2 {
-		// pbftClr := <-clientResponseChan
 		pbftClr := <-pbft.ClientRequestChan // This should be it
 		if pbftClr.Arg.SequenceID == succ.ret.SequenceID {
 			// Check if the request is for this particular seqId
 			log.Printf("Recieved from %v", pbftClr.Arg.ClientID)
-			ret = fmt.Sprintf("%v", pbftClr.Arg.NodeResult)
-			// ret = convertKeyValueToString(pbftClr.Arg.NodeResult)
-			numberOfValidResponses += 1
+			if pbftClr.Arg.Operation == "redirect" {
+				newPrimary := "127.0.0.1:" + pbftClr.Arg.ClientID
+				log.Printf("Redirecting command to new primary - %v", newPrimary)
+				primaryConn, e := util.ConnectToPeer(newPrimary)
+				if e != nil {
+					log.Fatal("Failed to connect to new primary's GRPC - %v", e)
+				}
+				log.Printf("Connected to new primary : primaryConn - %v || calling command again", primaryConn)
+				go callCommand(newPrimary, primaryConn, clientResponseChan, command, key, value)
+				log.Printf("waitForSufficientResponses")
+				// waitForSufficientResponses should be sychronous
+				stringToDisplay := waitForSufficientResponses(newPrimary, primaryConn, clientResponseChan, command, key, value, pbft)
+				return stringToDisplay
+			} else {
+				ret = fmt.Sprintf("%v", pbftClr.Arg.NodeResult)
+				// ret = convertKeyValueToString(pbftClr.Arg.NodeResult)
+				numberOfValidResponses += 1
+			}
 		}
-		// Check something here and increment
 		res := pb.Result{Result: &pb.Result_S{S: &pb.Success{}}}
 		responseBack := pb.ClientResponse{ViewId: 0, Timestamp: time.Now().UnixNano(), ClientID: "TheOneAndOnly", Node: "TheOneAndOnly", NodeResult: &res, SequenceID: pbftClr.Arg.SequenceID}
 		pbftClr.Response <- responseBack
@@ -80,9 +93,7 @@ type KvStoreClient struct {
 }
 
 func main() {
-	// func clientMain() {
 
-	// var clientPort int
 	var pbftPort int
 	var primary string
 
@@ -99,13 +110,6 @@ func main() {
 	id := fmt.Sprintf("%s:%d", name, pbftPort)
 	log.Printf("Starting client with ID %s", id)
 
-	// // Required??
-	// portString := fmt.Sprintf(":%d", clientPort)
-	// c, err := net.Listen("tcp", portString)
-	// if err != nil {
-	// 	log.Fatalf("Could not create listening socket %v", err)
-	// }
-
 	// Create a new GRPC server
 	// s := grpc.NewServer()
 	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput), ViewChangeMsgChan: make(chan util.ViewChangeMsgInput)}
@@ -117,27 +121,9 @@ func main() {
 		log.Fatal("Failed to connect to primary's GRPC - %v", e)
 	}
 	log.Printf("Connected to primary : primaryConn - %v", primaryConn)
-	// for _, peer := range primaries {
-	// 	primaryConn, err = util.ConnectToPeer(peer)
-	// 	if err != nil {
-	// 		log.Fatalf("Failed to connect to GRPC server %v", err)
-	// 	}
-	// 	log.Printf("Connected to %v", peer)
-	// }
 
-	// Initialize KVStore
-	// store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
-	// kvc := KvStoreClient{Store: make(map[string]string)}
 	clientResponseChan := make(chan ClientResponse)
 	// pbftMsgAcceptedChan := make(chan PbftMsgAccepted)
-
-	// Is this really? Am I really using KVStore as grpc??
-	// pb.RegisterKvStoreServer(s, &store)
-	// log.Printf("Going to listen on port %v", clientPort)
-	// Start serving, this will block this function and only return when done.
-	// if err := s.Serve(c); err != nil {
-	// 	log.Fatalf("Failed to serve %v", err)
-	// }
 
 	welcome := Welcome{"Anonymous", time.Now().Format(time.Stamp), ""}
 	templates := template.Must(template.ParseFiles("templates/welcome-template.html"))

@@ -20,6 +20,7 @@ message KeyValue {
 
 // Represent a void message indicating success
 message Success {
+    bool isSuccessful = 1;
 }
 
 // Represents an error.
