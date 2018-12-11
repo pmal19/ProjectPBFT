@@ -15,7 +15,7 @@ func startViewChange(newView int64, peerClients map[string]pb.PbftClient, seqId 
 			pbftMsgAcceptedChan <- PbftMsgAccepted{ret: ret, err: err, peer: p}
 		}(c, p)
 	}
-	printMyStoreAndLog(logEntries, kvs, currentView)
+	printMyStoreAndLog(logEntries, kvs, currentView, seqId)
 }
 
 // func

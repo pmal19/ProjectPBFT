@@ -11,8 +11,6 @@ import (
 	"net/http"
 	"os"
 	"time"
-
-	"google.golang.org/grpc"
 )
 
 type Welcome struct {
@@ -44,7 +42,7 @@ func convertKeyValueToString(kv pb.KeyValue) string {
 // while loop till f+1 correct responses from all nodes through some
 // channel using grpc
 // return with the result
-func callCommand(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string) {
+func callCommand(primary string, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string) {
 	log.Printf("callCommand for " + command + ":" + key + ":" + value)
 	req := pb.ClientRequest{Operation: command + ":" + key + ":" + value, Timestamp: time.Now().UnixNano(), ClientID: "TheOneAndOnly"}
 	log.Printf("req %v || reqOp %v reqT %v reqC %v", req, req.Operation, req.Timestamp, req.ClientID)
@@ -53,7 +51,7 @@ func callCommand(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, 
 	clientResponseChan <- ClientResponse{ret: ret, err: err, node: primary}
 }
 
-func waitForSufficientResponses(primary string, kvc *KvStoreClient, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string, pbft util.Pbft) string {
+func waitForSufficientResponses(primary string, primaryConn pb.PbftClient, clientResponseChan chan ClientResponse, command string, key string, value string, pbft util.Pbft) string {
 	log.Printf("waiting for " + command + ":" + key + ":" + value + " - commit from nodes")
 	numberOfValidResponses := 0
 	succ := <-clientResponseChan // Initial success message
@@ -109,7 +107,7 @@ func main() {
 	// }
 
 	// Create a new GRPC server
-	s := grpc.NewServer()
+	// s := grpc.NewServer()
 	pbft := util.Pbft{ClientRequestChan: make(chan util.ClientRequestInput), PrePrepareMsgChan: make(chan util.PrePrepareMsgInput), PrepareMsgChan: make(chan util.PrepareMsgInput), CommitMsgChan: make(chan util.CommitMsgInput), ViewChangeMsgChan: make(chan util.ViewChangeMsgInput)}
 	go util.RunPbftServer(&pbft, pbftPort)
 
@@ -128,13 +126,13 @@ func main() {
 	// }
 
 	// Initialize KVStore
-	store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
-	kvc := KvStoreClient{Store: make(map[string]string)}
+	// store := util.KVStore{C: make(chan util.InputChannelType), Store: make(map[string]string)}
+	// kvc := KvStoreClient{Store: make(map[string]string)}
 	clientResponseChan := make(chan ClientResponse)
 	// pbftMsgAcceptedChan := make(chan PbftMsgAccepted)
 
 	// Is this really? Am I really using KVStore as grpc??
-	pb.RegisterKvStoreServer(s, &store)
+	// pb.RegisterKvStoreServer(s, &store)
 	// log.Printf("Going to listen on port %v", clientPort)
 	// Start serving, this will block this function and only return when done.
 	// if err := s.Serve(c); err != nil {
@@ -157,11 +155,11 @@ func main() {
 
 		if command != "" && key != "" {
 			// callCommand should be async
-			go callCommand(primary, &kvc, primaryConn, clientResponseChan, command, key, value)
+			go callCommand(primary, primaryConn, clientResponseChan, command, key, value)
 
 			log.Printf("waitForSufficientResponses")
 			// waitForSufficientResponses should be sychronous
-			stringToDisplay := waitForSufficientResponses(primary, &kvc, primaryConn, clientResponseChan, command, key, value, pbft)
+			stringToDisplay := waitForSufficientResponses(primary, primaryConn, clientResponseChan, command, key, value, pbft)
 			welcome.ReturnValue = stringToDisplay
 			log.Printf("Should be committed - return to browser")
 		}
