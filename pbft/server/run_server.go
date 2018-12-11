@@ -219,7 +219,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			log.Printf("Timeout - initiate view change. New view - %v", newView)
 			transitionPhase = true
 			// startViewChange(newView, peerClients, seqId, id, pbftMsgAcceptedChan, logEntries, kvs)
-			viewChange := pb.ViewChangeMsg{Type: "view-change", NewView: newView, LastSequenceID: seqId, Node: id}
+			viewChange := pb.ViewChangeMsg{Type: "view-change", NewView: newView, LastSequenceID: seqId - 1, Node: id}
 			for p, c := range peerClients {
 				go func(c pb.PbftClient, p string) {
 					ret, err := c.ViewChangePBFT(context.Background(), &viewChange)
@@ -236,6 +236,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				currentView = newView
 				transitionPhase = false
 				numberOfVotes = 0
+				seqId = pbftVc.Arg.LastSequenceID
 			} else {
 				if newView == myId {
 					log.Printf("Received vote from %v", pbftVc.Arg.Node)
@@ -246,6 +247,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			}
 			// New Primary
 			if numberOfVotes >= 2 {
+				viewChangeTimer.Stop()
 				log.Printf("Switching to new view - %v and taking on as primary", newView)
 				viewChange := pb.ViewChangeMsg{Type: "new-view", NewView: newView, LastSequenceID: seqId, Node: id}
 				for p, c := range peerClients {
@@ -257,6 +259,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 				transitionPhase = false
 				currentView = newView
 				numberOfVotes = 0
+				seqId = pbftVc.Arg.LastSequenceID
 			}
 		// case op := <-s.C:
 		// 	s.HandleCommand(op)
@@ -292,11 +295,12 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 					pbftClr.Response <- responseBack
 				} else {
 					// Need to send some kind of redirect message
-					log.Printf("Redirect message View Change")
+					log.Printf("Send Back Redirect message - View Change")
 				}
 			} else {
 				log.Printf("Received ClientRequestChan %v", clientReq.ClientID)
 				log.Printf("But.....Requested View Change")
+				log.Printf("Send Back Redirect message - View Change")
 			}
 		case pbftPrePrep := <-pbft.PrePrepareMsgChan:
 			prePrepareMsg := pbftPrePrep.Arg
@@ -344,6 +348,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			} else {
 				log.Printf("Received PrePrepareMsgChan %v from primary %v", pbftPrePrep.Arg, pbftPrePrep.Arg.Node)
 				log.Printf("But.....Requested View Change")
+				log.Printf("Send Back Redirect message - View Change")
 			}
 		case pbftPre := <-pbft.PrepareMsgChan:
 			prepareMsg := pbftPre.Arg
@@ -390,6 +395,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			} else {
 				log.Printf("Received PrepareMsgChan %v", prepareMsg)
 				log.Printf("But.....Requested View Change")
+				log.Printf("Send Back Redirect message - View Change")
 			}
 		case pbftCom := <-pbft.CommitMsgChan:
 			if !transitionPhase {
@@ -445,6 +451,7 @@ func serve(s *util.KVStore, r *rand.Rand, peers *util.ArrayPeers, id string, por
 			} else {
 				log.Printf("Received CommitMsgChan %v", pbftCom.Arg.Node)
 				log.Printf("But.....Requested View Change")
+				log.Printf("Send Back Redirect message - View Change")
 			}
 		case clr := <-clientResponseChan:
 			log.Printf("Client Response Received for committedLocal and executed state %v", clr)
